@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import LoginModal from "@/components/auth/LoginModal";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -8,6 +12,8 @@ const navItems = [
 ];
 
 export function Navbar() {
+  const [open, setOpen] = useState(false);
+
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex h-16 max-w-[1720px] items-center justify-between px-6 sm:px-10 lg:px-24">
@@ -28,12 +34,15 @@ export function Navbar() {
             </Link>
           ))}
         </nav>
-        <Link
-          href="/login"
+
+        <button
+          onClick={() => setOpen(true)}
           className="rounded-md bg-overlay px-6 py-3 text-[16px] font-semibold leading-6 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark"
         >
           Start for free
-        </Link>
+        </button>
+
+        <LoginModal open={open} onClose={() => setOpen(false)} />
       </div>
     </header>
   );
