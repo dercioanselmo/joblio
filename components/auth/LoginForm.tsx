@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@insforge/sdk';
+import { trackEvent } from '@/lib/analytics';
 
 const providers = [
   { id: 'google', label: 'Continue with Google' },
@@ -24,6 +25,8 @@ export default function LoginForm({ onSuccess }: { onSuccess?: () => void }) {
   const handleOAuth = async (provider: string) => {
     setErrorMessage(null);
     setLoadingProvider(provider);
+
+    trackEvent('login_initiated', { provider, source: 'login_form' });
 
     try {
       const client = createClient({ baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL! });

@@ -1,5 +1,8 @@
+'use client';
+
 import Image from "next/image";
 import Link from "next/link";
+import { trackEvent } from '@/lib/analytics';
 
 function ArrowGlyph() {
   return (
@@ -27,6 +30,7 @@ export function Hero() {
           <Link
             href="/login"
             className="min-w-47.5 rounded-md bg-overlay px-8 py-4 text-[20px] font-semibold leading-7 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark"
+            onClick={() => trackEvent('cta_clicked', { source: 'hero', button: 'get_started' })}
           >
             Get Started
             <ArrowGlyph />
@@ -34,6 +38,7 @@ export function Hero() {
           <Link
             href="/find-jobs"
             className="min-w-65 rounded-md border border-border bg-surface/70 px-8 py-4 text-[20px] font-semibold leading-7 text-text-slate shadow-sm transition transform hover:-translate-y-0.5 hover:bg-surface"
+            onClick={() => trackEvent('cta_clicked', { source: 'hero', button: 'find_first_match' })}
           >
             Find Your First Match
           </Link>

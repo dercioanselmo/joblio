@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { insforge } from "@/lib/insforge-client";
+import { identifyUser, trackEvent } from '@/lib/analytics';
 
 export default function CallbackPage() {
   const router = useRouter();
@@ -16,6 +17,13 @@ export default function CallbackPage() {
         const { data: user, error } = await insforge.auth.getCurrentUser();
 
         if (user) {
+          identifyUser(user.id, {
+            email: user.email,
+            name: user.profile?.name,
+          });
+          trackEvent('login_completed', {
+            provider: user.providers?.[0],
+          });
           const redirectTarget = searchParams.get("redirect") ?? "/dashboard";
           router.replace(redirectTarget);
           return;
@@ -26,6 +34,7 @@ export default function CallbackPage() {
         setStatus("error");
       } catch (error) {
         console.error("[callback]", error);
+        trackEvent('login_failed', { step: 'callback', error: error instanceof Error ? error.message : String(error) });
         setErrorMessage("Unable to confirm your login. Please sign in again.");
         setStatus("error");
       }

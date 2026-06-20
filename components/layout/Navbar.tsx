@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
+import { trackEvent } from '@/lib/analytics';
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -29,14 +30,22 @@ export function Navbar() {
         </Link>
         <nav className="hidden items-center gap-12 text-[16px] font-medium leading-6 text-text-dark sm:flex">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition hover:text-accent">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="transition hover:text-accent"
+              onClick={() => trackEvent('navbar_link_clicked', { label: item.label, href: item.href })}
+            >
               {item.label}
             </Link>
           ))}
         </nav>
 
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setOpen(true);
+            trackEvent('login_modal_opened', { source: 'navbar' });
+          }}
           className="rounded-md bg-overlay px-6 py-3 text-[16px] font-semibold leading-6 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark"
         >
           Start for free
