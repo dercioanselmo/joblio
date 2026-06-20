@@ -69,6 +69,12 @@
   --color-overlay: #111827;
   --color-overlay-dark: #131316;
 
+  /* Landing page illustration washes */
+  --color-landing-pink: #fbecf6;
+  --color-landing-blue: #dbeeff;
+  --color-landing-wash: #fbf8ff;
+  --color-hatch-line: #eef1f6;
+
   /* Border radius */
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -99,4 +105,23 @@ body {
 ::selection {
   background: var(--color-accent-light);
   color: var(--color-accent);
+}
+
+.landing-gradient {
+  background:
+    radial-gradient(circle at 24% 22%, var(--color-landing-pink) 0, transparent 34%),
+    radial-gradient(circle at 76% 18%, var(--color-landing-blue) 0, transparent 38%),
+    radial-gradient(circle at 54% 64%, var(--color-landing-wash) 0, transparent 42%),
+    var(--color-surface);
+}
+
+.section-hatch {
+  background-image: repeating-linear-gradient(
+    120deg,
+    transparent 0,
+    transparent 6px,
+    var(--color-hatch-line) 6px,
+    var(--color-hatch-line) 8px
+  );
+  background-color: var(--color-surface);
 }
