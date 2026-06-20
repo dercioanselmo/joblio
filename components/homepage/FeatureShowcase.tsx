@@ -49,7 +49,7 @@ export function FeatureShowcase() {
     <section className="border-x border-border bg-surface">
       <div className="grid border-b border-border lg:grid-cols-2">
         <div className="border-r border-border px-6 py-16 sm:px-12 lg:px-24 lg:py-28">
-          <h2 className="max-w-[620px] text-[44px] font-bold leading-[1.1] tracking-normal text-text-slate sm:text-[56px] lg:text-[64px]">
+          <h2 className="max-w-155 text-[44px] font-bold leading-[1.1] tracking-normal text-text-slate sm:text-[56px] lg:text-[64px]">
             Manage Your Job Search With Ease
           </h2>
           <div className="mt-20 border-t border-border">
@@ -80,7 +80,7 @@ export function FeatureShowcase() {
           </div>
         </div>
         <div className="border-l border-border px-6 py-16 sm:px-12 lg:px-24 lg:py-28">
-          <h2 className="max-w-[760px] text-[44px] font-bold leading-[1.1] tracking-normal text-text-slate sm:text-[56px] lg:text-[64px]">
+          <h2 className="max-w-190 text-[44px] font-bold leading-[1.1] tracking-normal text-text-slate sm:text-[56px] lg:text-[64px]">
             Apply With More Confidence, Every Time
           </h2>
           <div className="mt-20 border-t border-border">
@@ -109,7 +109,7 @@ function FeatureText({ title, description, active }: FeatureTextProps) {
       }`}
     >
       <h3 className="text-[26px] font-bold leading-8 text-text-darker">{title}</h3>
-      <p className="mt-5 max-w-[760px] text-[24px] font-normal leading-10 text-text-slate-medium">
+      <p className="mt-5 max-w-190 text-[24px] font-normal leading-10 text-text-slate-medium">
         {description}
       </p>
     </div>

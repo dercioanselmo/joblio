@@ -20,8 +20,8 @@ className="bg-surface text-text-primary border-border"
 // Also correct — references CSS variable directly
 style={{ color: 'var(--color-text-primary)' }}
 
-// Never — hardcoded hex values
-className="bg-[#F6F7FB] text-[#101828]"
+// Never — hardcoded hex values (use tokens instead)
+className="bg-background text-text-primary"
 
 // Never — raw Tailwind color classes
 className="bg-purple-500 text-gray-600"

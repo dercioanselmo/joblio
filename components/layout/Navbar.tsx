@@ -10,7 +10,7 @@ const navItems = [
 export function Navbar() {
   return (
     <header className="border-b border-border bg-surface">
-      <div className="mx-auto flex h-20 max-w-[1720px] items-center justify-between px-6 sm:px-10 lg:px-24">
+      <div className="mx-auto flex h-16 max-w-[1720px] items-center justify-between px-6 sm:px-10 lg:px-24">
         <Link href="/" aria-label="Joblio home" className="shrink-0">
           <Image
             src="/logo.png"

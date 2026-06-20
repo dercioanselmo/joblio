@@ -6,7 +6,7 @@ export function Testimonial() {
       <p className="text-[18px] font-semibold uppercase leading-7 tracking-[0.16em] text-accent">
         Success Stories
       </p>
-      <blockquote className="mx-auto mt-8 max-w-[1120px] text-[34px] font-semibold leading-[1.35] tracking-normal text-text-darker sm:text-[44px] lg:text-[52px]">
+      <blockquote className="mx-auto mt-8 max-w-280 text-[34px] font-semibold leading-[1.35] tracking-normal text-text-darker sm:text-[44px] lg:text-[52px]">
         &ldquo;I used to spend my evenings copy-pasting resumes. Now I open my dashboard to
         see interviews waiting. It feels like cheating. Had 3 offers on the table
         simultaneously.&rdquo;
