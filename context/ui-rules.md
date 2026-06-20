@@ -104,7 +104,7 @@ Trend badges on stat cards use `border-radius: 4px` (not pill) with `#ECFDF5` ba
 ---
 
 ## Buttons
-
+All with subtle hover translate motion
 **Primary button:**
 
 ```

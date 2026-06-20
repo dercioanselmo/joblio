@@ -319,3 +319,6 @@ Approved dependencies for this project:
 - `shadcn/ui` components — UI primitives
 
 Do not install any other packages without updating this list first.
+
+## Commit the code
+Do not try to commit the code. Only suggest the commit text coherent with changes just done in the end of the task.

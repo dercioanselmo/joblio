@@ -30,7 +30,7 @@ export function Navbar() {
         </nav>
         <Link
           href="/login"
-          className="rounded-md bg-overlay px-6 py-3 text-[16px] font-semibold leading-6 text-accent-foreground shadow-sm transition hover:bg-overlay-dark"
+          className="rounded-md bg-overlay px-6 py-3 text-[16px] font-semibold leading-6 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark"
         >
           Start for free
         </Link>

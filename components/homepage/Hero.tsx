@@ -26,14 +26,14 @@ export function Hero() {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             href="/login"
-            className="min-w-47.5 rounded-md bg-overlay px-8 py-4 text-[20px] font-semibold leading-7 text-accent-foreground shadow-sm transition hover:bg-overlay-dark"
+            className="min-w-47.5 rounded-md bg-overlay px-8 py-4 text-[20px] font-semibold leading-7 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark"
           >
             Get Started
             <ArrowGlyph />
           </Link>
           <Link
             href="/find-jobs"
-            className="min-w-65 rounded-md border border-border bg-surface/70 px-8 py-4 text-[20px] font-semibold leading-7 text-text-slate shadow-sm transition hover:bg-surface"
+            className="min-w-65 rounded-md border border-border bg-surface/70 px-8 py-4 text-[20px] font-semibold leading-7 text-text-slate shadow-sm transition transform hover:-translate-y-0.5 hover:bg-surface"
           >
             Find Your First Match
           </Link>
