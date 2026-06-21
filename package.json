@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:import-schema": "npm exec --package=@insforge/cli -- insforge db import db/schema.sql",
+    "db:create-resume-bucket": "npm exec --package=@insforge/cli -- insforge storage create-bucket --private resumes"
   },
   "dependencies": {
     "@insforge/sdk": "^1.4.2",
