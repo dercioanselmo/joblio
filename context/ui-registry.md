@@ -20,12 +20,38 @@ After building any component — update this file with the component name, file 
 
 ### Navbar
 
-- Path: `components/layout/Navbar.tsx`
+- Path: `components/layout/Navbar.tsx` (async server component — checks session via `createInsforgeServer()` and passes `isAuthenticated` down)
+- Split into: `components/layout/NavbarLink.tsx` (client, per-link click tracking) and `components/layout/NavbarAuthCta.tsx` (client, renders "Start for free" + `LoginModal` when signed out, "Sign out" button when signed in)
 - Classes:
   - Header: `border-b border-border bg-surface`
   - Inner: `mx-auto flex h-20 max-w-[1720px] items-center justify-between px-6 sm:px-10 lg:px-24`
   - Nav: `hidden items-center gap-12 text-[16px] font-medium leading-6 text-text-dark sm:flex`
-  - CTA: `rounded-md bg-overlay px-6 py-3 text-[16px] font-semibold leading-6 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark`
+  - CTA (both "Start for free" and "Sign out"): `rounded-md bg-overlay px-6 py-3 text-[16px] font-semibold leading-6 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark`
+
+### Login Page
+
+- Path: `app/(auth)/login/page.tsx`
+- Classes:
+  - Page: `min-h-screen bg-surface px-6 py-16 text-text-dark`
+  - Card: `mx-auto max-w-xl rounded-3xl border border-border bg-background p-10 shadow-xl shadow-black/5 sm:p-12`
+  - Help panel: `mt-8 rounded-3xl border border-border bg-surface p-5 text-sm text-text-muted`
+
+### LoginFormContent (used by Login Page and LoginModal)
+
+- Path: `components/auth/LoginFormContent.tsx`
+- Classes:
+  - Eyebrow: `text-sm uppercase tracking-[0.24em] text-text-muted`
+  - H1: `text-4xl font-semibold tracking-tight`
+  - OAuth button: `flex w-full items-center justify-center rounded-2xl bg-accent px-4 py-4 text-base font-semibold text-accent-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-70`
+  - Error banner: `mt-6 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive`
+- Logic: calls the `initiateOAuth` server action (`actions/auth.ts`) — OAuth code exchange happens server-side via `app/api/auth/callback/route.ts`, never in the browser.
+
+### LoginModal
+
+- Path: `components/auth/LoginModal.tsx`
+- Classes:
+  - Backdrop: `fixed inset-0 z-40 bg-black/40 backdrop-blur-sm`
+  - Panel: `w-full max-w-xl rounded-3xl border border-border bg-background p-8 shadow-xl shadow-black/5`
 
 ### Hero
 

@@ -20,7 +20,7 @@ export function Hero() {
         <h1 className="mx-auto max-w-230 text-[48px] font-bold leading-[1.08] tracking-normal text-text-black sm:text-[64px] lg:text-[78px]">
           Job hunting is hard.
           <br />
-          Your tools should not be.
+          Your tools shouldn&apos;t be.
         </h1>
         <p className="mx-auto mt-8 max-w-205 text-[22px] font-normal leading-9 text-text-slate-medium">
           Stop applying blind. Joblio finds the jobs, researches the companies, and

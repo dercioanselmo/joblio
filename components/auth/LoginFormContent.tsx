@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@insforge/sdk';
+import { useSearchParams } from 'next/navigation';
+import { initiateOAuth } from '@/actions/auth';
 import { trackEvent } from '@/lib/analytics';
 
 const providers = [
@@ -11,16 +11,12 @@ const providers = [
 ];
 
 export default function LoginFormContent({ onSuccess }: { onSuccess?: () => void }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const redirectAfterLogin = searchParams?.get('redirect') ?? '/dashboard';
-  const redirectTo =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/callback?redirect=${encodeURIComponent(redirectAfterLogin)}`
-      : `/callback?redirect=${encodeURIComponent(redirectAfterLogin)}`;
+  const oauthError = searchParams?.get('error');
 
   const handleOAuth = async (provider: string) => {
     setErrorMessage(null);
@@ -29,25 +25,8 @@ export default function LoginFormContent({ onSuccess }: { onSuccess?: () => void
     trackEvent('login_initiated', { provider, source: 'login_form' });
 
     try {
-      const client = createClient({ baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL! });
-
-      const { data, error } = await client.auth.signInWithOAuth(provider, {
-        redirectTo,
-      });
-
-      if (error) {
-        setErrorMessage('Unable to start OAuth sign in. Please try again.');
-        setLoadingProvider(null);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
-
-      router.push(`/callback?redirect=${encodeURIComponent(redirectAfterLogin)}`);
       onSuccess?.();
+      await initiateOAuth(provider, redirectAfterLogin);
     } catch (err) {
       console.error('[login]', err);
       setErrorMessage('Unable to start sign in. Please try again.');
@@ -77,9 +56,9 @@ export default function LoginFormContent({ onSuccess }: { onSuccess?: () => void
         ))}
       </div>
 
-      {errorMessage ? (
+      {errorMessage || oauthError ? (
         <div className="mt-6 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {errorMessage}
+          {errorMessage ?? 'Sign in failed. Please try again.'}
         </div>
       ) : null}
     </div>

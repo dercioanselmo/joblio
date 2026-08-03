@@ -1,6 +1,4 @@
 import Image from "next/image";
-import { JobListCard } from "./JobListCard";
-import { AgentLogMock } from "./AgentLogMock";
 
 const searchFeatures = [
   {
@@ -59,15 +57,13 @@ export function FeatureShowcase() {
           </div>
         </div>
         <div className="flex items-center bg-surface-muted px-6 py-14 sm:px-12 lg:px-10">
-          <div className="mx-auto w-full max-w-md">
-            <JobListCard
-              jobs={[
-                { company: "Vercel", title: "Frontend Engineer", score: 94, salary: "$160k - $200k", source: "LinkedIn" },
-                { company: "Stripe", title: "Full Stack", score: 86, salary: "$130k - $240k", source: "URL" },
-                { company: "Linear", title: "Product Engineer", score: 96, salary: "$150k - $190k", source: "LinkedIn" },
-                { company: "Notion", title: "Frontend", score: 72, salary: "$120k - $170k", source: "LinkedIn" },
-                { company: "OpenAI", title: "ML Engineer", score: 91, salary: "$220k - $290k", source: "LinkedIn" },
-              ]}
+          <div className="mx-auto w-full max-w-xl">
+            <Image
+              src="/images/jobs-lists.png"
+              alt="Job matches list with match score, salary estimate, and source"
+              width={2364}
+              height={1778}
+              className="h-auto w-full rounded-xl shadow-sm"
             />
           </div>
         </div>
@@ -75,8 +71,14 @@ export function FeatureShowcase() {
       <PatternDivider />
       <div className="grid border-b border-border lg:grid-cols-2">
         <div className="flex items-center bg-surface-muted px-6 py-16 sm:px-12 lg:px-20">
-          <div className="mx-auto w-full max-w-md">
-            <AgentLogMock />
+          <div className="mx-auto w-full max-w-xl">
+            <Image
+              src="/images/agnet-log.png"
+              alt="Agent log showing job scan and resume tailoring progress"
+              width={2144}
+              height={1656}
+              className="h-auto w-full rounded-xl shadow-sm"
+            />
           </div>
         </div>
         <div className="border-l border-border px-6 py-16 sm:px-12 lg:px-24 lg:py-28">
