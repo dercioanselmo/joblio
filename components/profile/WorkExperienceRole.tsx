@@ -3,16 +3,9 @@ import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
+import type { WorkExperienceRoleData } from "@/types";
 
-export type WorkExperienceRoleData = {
-  id: string;
-  company: string;
-  title: string;
-  startDate: string;
-  endDate: string;
-  current: boolean;
-  responsibilities: string;
-};
+export type { WorkExperienceRoleData };
 
 type Props = {
   role: WorkExperienceRoleData;

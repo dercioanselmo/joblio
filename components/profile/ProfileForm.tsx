@@ -7,41 +7,11 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { TagInput } from "@/components/profile/TagInput";
-import { WorkExperienceRole, type WorkExperienceRoleData } from "@/components/profile/WorkExperienceRole";
+import { WorkExperienceRole } from "@/components/profile/WorkExperienceRole";
+import { saveProfile } from "@/actions/profile";
+import type { ProfileFormValues, WorkExperienceRoleData } from "@/types";
 
 const MAX_ROLES = 3;
-
-type PersonalInfo = {
-  fullName: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedinUrl: string;
-  portfolioUrl: string;
-  workAuthorization: string;
-};
-
-type ProfessionalInfo = {
-  currentTitle: string;
-  experienceLevel: string;
-  yearsExperience: string;
-  skills: string[];
-  industries: string[];
-};
-
-type EducationInfo = {
-  degree: string;
-  fieldOfStudy: string;
-  institution: string;
-  graduationYear: string;
-};
-
-type JobPreferences = {
-  jobTitlesSeeking: string;
-  remotePreference: string;
-  salaryExpectation: string;
-  preferredLocations: string;
-};
 
 function createRole(): WorkExperienceRoleData {
   return {
@@ -55,66 +25,44 @@ function createRole(): WorkExperienceRoleData {
   };
 }
 
-export function ProfileForm() {
-  const [personal, setPersonal] = useState<PersonalInfo>({
-    fullName: "Faizan Ali",
-    email: "faizan@jsmastery.pro",
-    phone: "",
-    location: "",
-    linkedinUrl: "https://linkedin.com/in/faizan",
-    portfolioUrl: "https://github.com/jsmastery",
-    workAuthorization: "citizen",
-  });
+type Props = {
+  initialValues: ProfileFormValues;
+  email: string;
+};
 
-  const [professional, setProfessional] = useState<ProfessionalInfo>({
-    currentTitle: "Frontend Engineer",
-    experienceLevel: "junior",
-    yearsExperience: "4",
-    skills: ["React", "TypeScript", "Next.js", "Tailwind CSS"],
-    industries: [],
-  });
+export function ProfileForm({ initialValues, email }: Props) {
+  const [values, setValues] = useState<ProfileFormValues>(initialValues);
+  const [isSaving, setIsSaving] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const [roles, setRoles] = useState<WorkExperienceRoleData[]>([
-    {
-      id: "role-1",
-      company: "Vercel",
-      title: "Frontend Engineer",
-      startDate: "2022-01",
-      endDate: "",
-      current: true,
-      responsibilities: "Built Next.js features and optimized web vitals. Led a team of 3 developers.",
-    },
-  ]);
-
-  const [education, setEducation] = useState<EducationInfo>({
-    degree: "high_school",
-    fieldOfStudy: "Computer Science",
-    institution: "",
-    graduationYear: "",
-  });
-
-  const [preferences, setPreferences] = useState<JobPreferences>({
-    jobTitlesSeeking: "Frontend Engineer, React Developer",
-    remotePreference: "any",
-    salaryExpectation: "",
-    preferredLocations: "",
-  });
+  const update = (patch: Partial<ProfileFormValues>) => setValues((v) => ({ ...v, ...patch }));
 
   const addRole = () => {
-    if (roles.length >= MAX_ROLES) return;
-    setRoles([...roles, createRole()]);
+    if (values.roles.length >= MAX_ROLES) return;
+    update({ roles: [...values.roles, createRole()] });
   };
 
   const updateRole = (updated: WorkExperienceRoleData) => {
-    setRoles(roles.map((role) => (role.id === updated.id ? updated : role)));
+    update({ roles: values.roles.map((role) => (role.id === updated.id ? updated : role)) });
   };
 
   const removeRole = (id: string) => {
-    setRoles(roles.filter((role) => role.id !== id));
+    update({ roles: values.roles.filter((role) => role.id !== id) });
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setStatus(null);
+
+    const result = await saveProfile(values);
+
+    if (result.success) {
+      setStatus({ type: "success", message: "Profile saved." });
+    } else {
+      setStatus({ type: "error", message: result.error ?? "Failed to save profile." });
+    }
+    setIsSaving(false);
   };
 
   return (
@@ -134,13 +82,13 @@ export function ProfileForm() {
             <Input
               id="fullName"
               className="mt-1.5"
-              value={personal.fullName}
-              onChange={(e) => setPersonal({ ...personal, fullName: e.target.value })}
+              value={values.fullName}
+              onChange={(e) => update({ fullName: e.target.value })}
             />
           </div>
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" className="mt-1.5" value={personal.email} disabled />
+            <Input id="email" className="mt-1.5" value={email} disabled />
           </div>
 
           <div>
@@ -149,8 +97,8 @@ export function ProfileForm() {
               id="phone"
               className="mt-1.5"
               placeholder="+1 (555) 000-0000"
-              value={personal.phone}
-              onChange={(e) => setPersonal({ ...personal, phone: e.target.value })}
+              value={values.phone}
+              onChange={(e) => update({ phone: e.target.value })}
             />
           </div>
           <div>
@@ -159,8 +107,8 @@ export function ProfileForm() {
               id="location"
               className="mt-1.5"
               placeholder="City, Country"
-              value={personal.location}
-              onChange={(e) => setPersonal({ ...personal, location: e.target.value })}
+              value={values.location}
+              onChange={(e) => update({ location: e.target.value })}
             />
           </div>
 
@@ -169,8 +117,8 @@ export function ProfileForm() {
             <Input
               id="linkedinUrl"
               className="mt-1.5"
-              value={personal.linkedinUrl}
-              onChange={(e) => setPersonal({ ...personal, linkedinUrl: e.target.value })}
+              value={values.linkedinUrl}
+              onChange={(e) => update({ linkedinUrl: e.target.value })}
             />
           </div>
           <div>
@@ -178,8 +126,8 @@ export function ProfileForm() {
             <Input
               id="portfolioUrl"
               className="mt-1.5"
-              value={personal.portfolioUrl}
-              onChange={(e) => setPersonal({ ...personal, portfolioUrl: e.target.value })}
+              value={values.portfolioUrl}
+              onChange={(e) => update({ portfolioUrl: e.target.value })}
             />
           </div>
 
@@ -188,8 +136,8 @@ export function ProfileForm() {
             <Select
               id="workAuthorization"
               className="mt-1.5"
-              value={personal.workAuthorization}
-              onChange={(e) => setPersonal({ ...personal, workAuthorization: e.target.value })}
+              value={values.workAuthorization}
+              onChange={(e) => update({ workAuthorization: e.target.value })}
             >
               <option value="citizen">Citizen</option>
               <option value="permanent_resident">Permanent Resident</option>
@@ -209,8 +157,8 @@ export function ProfileForm() {
             <Input
               id="currentTitle"
               className="mt-1.5"
-              value={professional.currentTitle}
-              onChange={(e) => setProfessional({ ...professional, currentTitle: e.target.value })}
+              value={values.currentTitle}
+              onChange={(e) => update({ currentTitle: e.target.value })}
             />
           </div>
 
@@ -220,8 +168,8 @@ export function ProfileForm() {
               <Select
                 id="experienceLevel"
                 className="mt-1.5"
-                value={professional.experienceLevel}
-                onChange={(e) => setProfessional({ ...professional, experienceLevel: e.target.value })}
+                value={values.experienceLevel}
+                onChange={(e) => update({ experienceLevel: e.target.value })}
               >
                 <option value="junior">Junior</option>
                 <option value="mid">Mid-level</option>
@@ -236,8 +184,8 @@ export function ProfileForm() {
                 type="number"
                 min={0}
                 className="mt-1.5"
-                value={professional.yearsExperience}
-                onChange={(e) => setProfessional({ ...professional, yearsExperience: e.target.value })}
+                value={values.yearsExperience}
+                onChange={(e) => update({ yearsExperience: e.target.value })}
               />
             </div>
           </div>
@@ -246,8 +194,8 @@ export function ProfileForm() {
             <Label>Skills</Label>
             <div className="mt-1.5">
               <TagInput
-                tags={professional.skills}
-                onChange={(skills) => setProfessional({ ...professional, skills })}
+                tags={values.skills}
+                onChange={(skills) => update({ skills })}
                 placeholder="Add a skill"
               />
             </div>
@@ -257,8 +205,8 @@ export function ProfileForm() {
             <Label>Industries Worked In (optional)</Label>
             <div className="mt-1.5">
               <TagInput
-                tags={professional.industries}
-                onChange={(industries) => setProfessional({ ...professional, industries })}
+                tags={values.industries}
+                onChange={(industries) => update({ industries })}
                 placeholder="E.g. FinTech, Healthcare"
               />
             </div>
@@ -270,7 +218,7 @@ export function ProfileForm() {
       <div className="mt-6 border-t border-border pt-6">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-primary">Work Experience</h3>
-          {roles.length < MAX_ROLES ? (
+          {values.roles.length < MAX_ROLES ? (
             <button
               type="button"
               onClick={addRole}
@@ -283,12 +231,12 @@ export function ProfileForm() {
         </div>
 
         <div className="mt-4 divide-y divide-border">
-          {roles.map((role, index) => (
+          {values.roles.map((role, index) => (
             <div key={role.id} className={index > 0 ? "pt-6" : undefined}>
               <WorkExperienceRole
                 role={role}
                 onChange={updateRole}
-                onRemove={roles.length > 1 ? () => removeRole(role.id) : undefined}
+                onRemove={values.roles.length > 1 ? () => removeRole(role.id) : undefined}
               />
             </div>
           ))}
@@ -305,8 +253,8 @@ export function ProfileForm() {
             <Select
               id="degree"
               className="mt-1.5"
-              value={education.degree}
-              onChange={(e) => setEducation({ ...education, degree: e.target.value })}
+              value={values.education.degree}
+              onChange={(e) => update({ education: { ...values.education, degree: e.target.value } })}
             >
               <option value="high_school">High School</option>
               <option value="associate">Associate Degree</option>
@@ -321,8 +269,10 @@ export function ProfileForm() {
             <Input
               id="fieldOfStudy"
               className="mt-1.5"
-              value={education.fieldOfStudy}
-              onChange={(e) => setEducation({ ...education, fieldOfStudy: e.target.value })}
+              value={values.education.fieldOfStudy}
+              onChange={(e) =>
+                update({ education: { ...values.education, fieldOfStudy: e.target.value } })
+              }
             />
           </div>
 
@@ -332,8 +282,10 @@ export function ProfileForm() {
               id="institution"
               className="mt-1.5"
               placeholder="E.g. State University"
-              value={education.institution}
-              onChange={(e) => setEducation({ ...education, institution: e.target.value })}
+              value={values.education.institution}
+              onChange={(e) =>
+                update({ education: { ...values.education, institution: e.target.value } })
+              }
             />
           </div>
           <div>
@@ -342,8 +294,10 @@ export function ProfileForm() {
               id="graduationYear"
               className="mt-1.5"
               placeholder="YYYY"
-              value={education.graduationYear}
-              onChange={(e) => setEducation({ ...education, graduationYear: e.target.value })}
+              value={values.education.graduationYear}
+              onChange={(e) =>
+                update({ education: { ...values.education, graduationYear: e.target.value } })
+              }
             />
           </div>
         </div>
@@ -359,8 +313,8 @@ export function ProfileForm() {
             <Input
               id="jobTitlesSeeking"
               className="mt-1.5"
-              value={preferences.jobTitlesSeeking}
-              onChange={(e) => setPreferences({ ...preferences, jobTitlesSeeking: e.target.value })}
+              value={values.jobTitlesSeeking}
+              onChange={(e) => update({ jobTitlesSeeking: e.target.value })}
             />
           </div>
 
@@ -370,8 +324,8 @@ export function ProfileForm() {
               <Select
                 id="remotePreference"
                 className="mt-1.5"
-                value={preferences.remotePreference}
-                onChange={(e) => setPreferences({ ...preferences, remotePreference: e.target.value })}
+                value={values.remotePreference}
+                onChange={(e) => update({ remotePreference: e.target.value })}
               >
                 <option value="remote">Remote</option>
                 <option value="onsite">On-site</option>
@@ -385,27 +339,54 @@ export function ProfileForm() {
                 id="salaryExpectation"
                 className="mt-1.5"
                 placeholder="E.g. $120k+"
-                value={preferences.salaryExpectation}
-                onChange={(e) => setPreferences({ ...preferences, salaryExpectation: e.target.value })}
+                value={values.salaryExpectation}
+                onChange={(e) => update({ salaryExpectation: e.target.value })}
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="preferredLocations">Preferred Locations (optional)</Label>
-            <Input
-              id="preferredLocations"
-              className="mt-1.5"
-              placeholder="E.g. New York, London"
-              value={preferences.preferredLocations}
-              onChange={(e) => setPreferences({ ...preferences, preferredLocations: e.target.value })}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="preferredLocations">Preferred Locations (optional)</Label>
+              <Input
+                id="preferredLocations"
+                className="mt-1.5"
+                placeholder="E.g. New York, London"
+                value={values.preferredLocations}
+                onChange={(e) => update({ preferredLocations: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="coverLetterTone">Cover Letter Tone</Label>
+              <Select
+                id="coverLetterTone"
+                className="mt-1.5"
+                value={values.coverLetterTone}
+                onChange={(e) => update({ coverLetterTone: e.target.value })}
+              >
+                <option value="formal">Formal</option>
+                <option value="casual">Casual</option>
+                <option value="enthusiastic">Enthusiastic</option>
+              </Select>
+            </div>
           </div>
         </div>
       </div>
 
-      <Button type="submit" variant="primary" className="mt-8 w-full py-3 text-base">
-        Save Profile
+      {status ? (
+        <div
+          className={
+            status.type === "success"
+              ? "mt-6 rounded-md border border-success/20 bg-success-lightest px-4 py-3 text-sm text-success-foreground"
+              : "mt-6 rounded-md border border-error/20 bg-error/10 px-4 py-3 text-sm text-error"
+          }
+        >
+          {status.message}
+        </div>
+      ) : null}
+
+      <Button type="submit" variant="primary" disabled={isSaving} className="mt-8 w-full py-3 text-base">
+        {isSaving ? "Saving..." : "Save Profile"}
       </Button>
     </form>
   );

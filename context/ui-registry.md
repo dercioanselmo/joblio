@@ -129,26 +129,29 @@ Hand-built, not the shadcn CLI — running `shadcn init` would have written its 
 
 ---
 
-## Profile Page (`context/designs/profile.png`, built 2026-08-04)
+## Profile Page (`context/designs/profile.png`, built 2026-08-04, wired to InsForge 2026-08-04)
 
-Full UI with local mock state only — no save/persistence logic yet (that's feature 06). Page path: `app/(app)/profile/page.tsx`, single column `mx-auto max-w-3xl flex flex-col gap-6`.
+Page path: `app/(app)/profile/page.tsx` — now an `async` Server Component: fetches the current user via `createInsforgeServer()` + `.auth.getCurrentUser()`, the `profiles` row via `.database.from("profiles").select("*").eq("id", user.id).maybeSingle()`, maps it to form state with `profileToFormValues()` (`lib/profile.ts`), computes completion with `computeProfileCompletion()`, and passes everything down as props. Single column `mx-auto max-w-3xl flex flex-col gap-6`. Data layer: `actions/profile.ts` (`saveProfile`, `uploadResume` Server Actions), `lib/profile.ts` (mappers + completion calc), `types/index.ts` (`Profile`, `ProfileFormValues`, `WorkExperienceRoleData`, `ProfileCompletion`).
 
 ### CompletionIndicator
 
-- Path: `components/profile/CompletionIndicator.tsx`
-- Props: `percentage: number`, `missingFields: string[]` — passed as static mock values from the page (`70`, `["Phone", "Location", "Education"]`) matching the design exactly, not computed (completion calculation is feature 06's job per `build-plan.md`)
+- Path: `components/profile/CompletionIndicator.tsx` (unchanged since feature 05 — still just `percentage`/`missingFields` props, presentational only)
+- Now fed real computed values from `computeProfileCompletion()` instead of the feature-05 hardcoded `70`/`["Phone","Location","Education"]` literals. That completion algorithm (`lib/profile.ts`) was verified, not guessed — reverse-engineered against those exact design numbers: 10 required checks (Full Name, Phone, Location, LinkedIn, Portfolio, Job Title, Skills ≥1, Work Experience ≥1 role, Education — all 4 sub-fields, Job Titles Seeking), 7 passing in the design's mock state = 70%. Fields the UI already labels "(optional)" (Industries, Salary Expectation, Preferred Locations) are excluded. `is_complete` is the only completion-related value actually persisted (`profiles.is_complete`); percentage/missing-fields are always recomputed from the row, never stored, to avoid staleness.
 - Card: `flex items-center justify-between gap-6 rounded-2xl border border-border bg-surface p-6 shadow`
 - Missing-field pill: `rounded-full bg-error/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-error`
 - Ring: inline SVG, two concentric `<circle>` (track `stroke-error/15`, fill `stroke-error`) with `strokeDasharray`/`strokeDashoffset` driven by `percentage`, wrapped in a `-rotate-90` svg so the arc starts at 12 o'clock; the `<text>` counter-rotates `rotate-90` to stay upright. No `error-light` token existed for the track, so `stroke-error/15` (Tailwind opacity modifier on the existing `--color-error` token) is used instead of a new hardcoded color.
 
 ### ResumeUpload
 
-- Path: `components/profile/ResumeUpload.tsx`
+- Path: `components/profile/ResumeUpload.tsx` — now `{ initialResumeUrl: string | null }` prop (from `profiles.resume_pdf_url`)
+- File select and drag-drop both call `uploadResume(file)` (`actions/profile.ts`), which validates type/size server-side (`application/pdf`, ≤5MB — never trust the client), uploads to InsForge Storage at `resumes/{user_id}/resume.pdf` via `insforge.storage.from("resumes").upload(path, file)`, then upserts just `{ id, email, resume_pdf_url }` onto `profiles` (upsert, not update, so a brand-new user uploading a resume before ever saving the rest of the form still works — and upsert-with-partial-payload is confirmed to leave other columns untouched, verified live against the real DB, not assumed)
+- When a resume URL is present (initial or just-uploaded), shows "Current resume: [View resume ↗]" above the dropzone — `text-sm text-text-secondary` / link `font-medium text-accent hover:text-accent-dark`. No design reference for this state (`profile.png` only shows the empty dropzone) — kept minimal/understated rather than inventing a bigger pattern.
 - Card: `rounded-2xl border border-border bg-surface p-6 shadow`
 - Dropzone: `rounded-lg border border-dashed border-border-muted bg-surface-secondary px-6 py-12 text-center`; drag-over state swaps to `border-accent bg-accent-muted`
 - Upload icon circle: `flex h-12 w-12 items-center justify-center rounded-full bg-surface shadow` containing a `lucide-react` `UploadCloud` icon in `text-accent`
-- "Select Resume" is a `Button variant="secondary"` that clicks a hidden native `<input type="file" accept="application/pdf">`
-- "Generate Resume from Profile" is a `Button variant="primary"` with a `FileText` icon, below a `border-t border-border` divider
+- "Select Resume" is a `Button variant="secondary"` that clicks a hidden native `<input type="file" accept="application/pdf">`; button and dropzone text show "Uploading..." while in flight
+- Error banner on failure: `rounded-md border border-error/20 bg-error/10 px-4 py-3 text-sm text-error` (reuses the same token pattern as ProfileForm's status banner — see below)
+- "Generate Resume from Profile" is a `Button variant="primary"` with a `FileText` icon, below a `border-t border-border` divider — still **not wired**, that's feature 08
 
 ### TagInput (shared — Skills and Industries)
 
@@ -165,9 +168,10 @@ Full UI with local mock state only — no save/persistence logic yet (that's fea
 
 ### ProfileForm
 
-- Path: `components/profile/ProfileForm.tsx` — `"use client"`, all state local (`useState`), no Server Action call yet; Save Profile button's `onSubmit` just calls `preventDefault()`
+- Path: `components/profile/ProfileForm.tsx` — `"use client"`, `{ initialValues: ProfileFormValues, email: string }` props (both from the server component page, via `profileToFormValues()`). Single `useState<ProfileFormValues>` tree now (feature 05 had 4 separate `useState` objects — consolidated since the Server Action takes the whole shape at once and the old split risked forgetting a sub-object when assembling the save payload)
+- `handleSave` is now `async`: calls `saveProfile(values)` (`actions/profile.ts`), shows "Saving..." on the button while pending (`disabled`), then a status banner — success: `border-success/20 bg-success-lightest text-success-foreground`; error: `border-error/20 bg-error/10 text-error` (note: **not** the `border-destructive/...` classes `LoginFormContent` uses — `--color-destructive` was never defined in `globals.css`'s `@theme` block, so that banner silently renders with no color at all; flagged separately, not fixed here since it's a different file, but don't copy that pattern)
 - Card: `rounded-2xl border border-border bg-surface p-6 shadow`; each subsection (Personal Info, Professional Info, Work Experience, Education, Job Preferences) separated by `border-t border-border pt-6`
-- Up to 3 work experience roles via `WorkExperienceRole`, added with a `+ Add role` accent-colored link (hidden once at the cap)
-- Save Profile: `Button variant="primary" className="mt-8 w-full py-3 text-base"`
-- **Decision:** the design has no Cover Letter Tone field, but `build-plan.md` and `profiles.cover_letter_tone` (DB column) both call for one. Followed the design exactly per explicit instruction — Cover Letter Tone is not in this form. Needs to be added in feature 06 or as a follow-up; flagged to the user.
-- Initial mock work-experience role uses a fixed id (`"role-1"`), not `crypto.randomUUID()` — the latter produces different values on server vs. client render and caused a real hydration mismatch (caught via Playwright console check, fixed before signing off). New roles added via "Add role" still use `crypto.randomUUID()` safely, since that only runs client-side after a user click, never during SSR.
+- Up to 3 work experience roles via `WorkExperienceRole`, added with a `+ Add role` accent-colored link (hidden once at the cap); starts at 0 roles for a brand-new user (no forced blank card — matches the "+ Add role" empty-state pattern already used for 2nd/3rd roles)
+- **Cover Letter Tone added** (2026-08-04, feature 06) — paired with Preferred Locations in a `grid sm:grid-cols-2` row at the end of Job Preferences, same `Select` pattern as Remote Preference. `profile.png` never showed this field (feature 05 matched the design exactly and left it out), but `profiles.cover_letter_tone` is a real CHECK-constrained column (`formal`/`casual`/`enthusiastic`) and 06 is explicitly about wiring the *complete* form to the DB.
+- Save Profile: `Button variant="primary" disabled={isSaving} className="mt-8 w-full py-3 text-base"`
+- Initial work-experience role ids come from `profileToFormValues()` as `role-${index}` (deterministic from the server-fetched array) — same fixed-id-not-`crypto.randomUUID()` lesson from feature 05's hydration bug, now generalized: anything rendered from server-provided initial state must have a deterministic id. New roles added via "Add role" still use `crypto.randomUUID()` safely, since that only runs client-side after a user click, never during SSR.
