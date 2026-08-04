@@ -21,20 +21,25 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
     <Fragment>
       <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-xl rounded-3xl border border-border bg-background p-8 shadow-xl shadow-black/5">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow sm:p-8">
           <div className="flex justify-end">
             <button
               aria-label="Close login"
               onClick={onClose}
-              className="rounded-full p-1 text-text-muted hover:bg-muted"
+              className="rounded-full p-1 text-text-muted hover:bg-surface-secondary"
             >
               ×
             </button>
           </div>
 
-          <div className="mt-2">
-            <LoginForm onSuccess={onClose} />
+          <div className="mb-6 -mt-4 text-center">
+            <h2 className="text-2xl font-bold text-text-black">Sign in to Joblio</h2>
+            <p className="mt-2 text-sm leading-6 text-text-slate-medium">
+              Continue with Google or GitHub to access your dashboard and job matches.
+            </p>
           </div>
+
+          <LoginForm onSuccess={onClose} />
         </div>
       </div>
     </Fragment>,

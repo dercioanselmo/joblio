@@ -19,6 +19,11 @@ export default function PostHogProviderContent({ children }: { children: React.R
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    // Skip when there's clearly no session yet — getCurrentUser()'s browser-side
+    // fallback would otherwise hit the InsForge host directly (cross-origin) and
+    // always 401 for anonymous visitors.
+    if (!document.cookie.includes('insforge_access_token=')) return;
+
     insforge.auth.getCurrentUser().then(({ data }) => {
       const user = data?.user;
       if (user && posthog.get_distinct_id() !== user.id) {

@@ -31,19 +31,18 @@ After building any component — update this file with the component name, file 
 ### Login Page
 
 - Path: `app/(auth)/login/page.tsx`
+- Redesigned (2026-08-04) to match documented Card/Button tokens — the original used `rounded-3xl` cards and `rounded-2xl bg-accent` buttons, neither of which matches `ui-tokens.md` (Card = `rounded-2xl`, Button = `rounded-md`).
 - Classes:
-  - Page: `min-h-screen bg-surface px-6 py-16 text-text-dark`
-  - Card: `mx-auto max-w-xl rounded-3xl border border-border bg-background p-10 shadow-xl shadow-black/5 sm:p-12`
-  - Help panel: `mt-8 rounded-3xl border border-border bg-surface p-5 text-sm text-text-muted`
+  - Page: `landing-gradient flex min-h-screen flex-col items-center justify-center px-6 py-16` (same background treatment as Hero/BottomCta)
+  - Card: `w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow sm:p-8` (matches the documented Card token exactly)
+  - H1: `text-2xl font-bold text-text-black`
 
-### LoginFormContent (used by Login Page and LoginModal)
+### LoginFormContent (used by Login Page and LoginModal — heading lives in each parent, not here)
 
 - Path: `components/auth/LoginFormContent.tsx`
 - Classes:
-  - Eyebrow: `text-sm uppercase tracking-[0.24em] text-text-muted`
-  - H1: `text-4xl font-semibold tracking-tight`
-  - OAuth button: `flex w-full items-center justify-center rounded-2xl bg-accent px-4 py-4 text-base font-semibold text-accent-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-70`
-  - Error banner: `mt-6 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive`
+  - OAuth button (Secondary token): `flex w-full items-center justify-center gap-3 rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary shadow-sm transition hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-70`, with an inline Google/GitHub glyph
+  - Error banner: `rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive`
 - Logic: calls the `initiateOAuth` server action (`actions/auth.ts`) — OAuth code exchange happens server-side via `app/api/auth/callback/route.ts`, never in the browser.
 
 ### LoginModal
@@ -51,7 +50,16 @@ After building any component — update this file with the component name, file 
 - Path: `components/auth/LoginModal.tsx`
 - Classes:
   - Backdrop: `fixed inset-0 z-40 bg-black/40 backdrop-blur-sm`
-  - Panel: `w-full max-w-xl rounded-3xl border border-border bg-background p-8 shadow-xl shadow-black/5`
+  - Panel: `w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow sm:p-8` (same Card token as Login Page)
+
+### SignOutButton (shared — used by Navbar and Profile placeholder)
+
+- Path: `components/auth/SignOutButton.tsx`
+- Takes `source` (analytics) and `className` (caller controls visual style since it's used in two different contexts)
+
+### App Layout (protected pages)
+
+- Path: `app/(app)/layout.tsx` — wraps `/dashboard`, `/profile` (and future `/find-jobs*`) with the persistent `Navbar`. `/login` intentionally has no navbar (matches the `(auth)` group's standalone auth-page pattern).
 
 ### Hero
 
