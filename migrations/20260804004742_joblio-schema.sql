@@ -1,4 +1,3 @@
--- db/schema.sql
 -- InsForge database schema for Joblio feature 4.
 
 -- Enable pgcrypto for UUID generation if available.
