@@ -21,7 +21,8 @@ After building any component — update this file with the component name, file 
 ### Navbar
 
 - Path: `components/layout/Navbar.tsx` (async server component — checks session via `createInsforgeServer()` and passes `isAuthenticated` down)
-- Split into: `components/layout/NavbarLink.tsx` (client, per-link click tracking) and `components/layout/NavbarAuthCta.tsx` (client, renders "Start for free" + `LoginModal` when signed out, "Sign out" button when signed in)
+- Split into: `components/layout/NavbarLink.tsx` (client, per-link click tracking + active-page state via `usePathname()`) and `components/layout/NavbarAuthCta.tsx` (client, renders "Start for free" + `LoginModal` when signed out, "Sign out" button when signed in)
+- Active nav item (2026-08-04, added to match `context/designs/profile.png`): `text-accent border-b-2 border-accent pb-px`; inactive: `text-text-dark border-b-2 border-transparent pb-px`. `/find-jobs` matches via `startsWith` so sub-routes stay highlighted. Note: `ui-rules.md` says "no underline" for active state, but the design shows one — design wins per its own "source of truth" rule. The design also shows small icons on each nav item (grid/search/person) that were **not** added, since that's a bigger change to this shared, all-pages component and unconfirmed against the dashboard/find-jobs designs — flagged for the user rather than guessed.
 - Classes:
   - Header: `border-b border-border bg-surface`
   - Inner: `mx-auto flex h-20 max-w-[1720px] items-center justify-between px-6 sm:px-10 lg:px-24`
@@ -112,3 +113,61 @@ After building any component — update this file with the component name, file 
   - Footer: `border-x border-border bg-surface`
   - Inner: `mx-auto flex min-h-44 max-w-[1720px] flex-col justify-between gap-8 px-6 py-10 sm:px-10 lg:flex-row lg:items-center lg:px-16`
   - Nav: `flex flex-wrap items-center gap-8 text-[20px] font-normal leading-7 text-text-dark`
+
+---
+
+## UI Primitives (`components/ui/`)
+
+Hand-built, not the shadcn CLI — running `shadcn init` would have written its own competing `--background`/`--foreground` token set into `globals.css` alongside the project's existing `@theme` tokens. These match shadcn's common prop shape (plain HTML attribute passthrough + `className` merge via `cn()` from `lib/utils.ts`) without the Radix/CVA dependency footprint, since every control here is a plain native element (no combobox/popover behavior needed by any current design).
+
+- `Button.tsx` — `variant?: "primary" | "secondary" | "ghost"`. Base: `inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60`. Primary: `bg-accent text-accent-foreground hover:bg-accent-dark`. Secondary: `bg-surface border border-border text-text-primary hover:bg-surface-secondary`. Ghost: `bg-transparent text-text-secondary hover:bg-surface-secondary`.
+- `Input.tsx` — `w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:ring-1 focus:ring-accent focus:border-accent disabled:bg-surface-secondary disabled:text-text-muted`
+- `Textarea.tsx` — same field classes as `Input.tsx`, no fixed height (caller passes `rows`)
+- `Select.tsx` — native `<select appearance-none>` wrapped in a `relative` div with a `lucide-react` `ChevronDown` absolutely positioned at `right-3`; same border/focus classes as `Input.tsx` plus `pr-9` for the icon
+- `Checkbox.tsx` — native `<input type="checkbox">`, `h-4 w-4 rounded border-border accent-accent`
+- `Label.tsx` — `block text-xs font-medium uppercase tracking-wide text-text-secondary`
+
+---
+
+## Profile Page (`context/designs/profile.png`, built 2026-08-04)
+
+Full UI with local mock state only — no save/persistence logic yet (that's feature 06). Page path: `app/(app)/profile/page.tsx`, single column `mx-auto max-w-3xl flex flex-col gap-6`.
+
+### CompletionIndicator
+
+- Path: `components/profile/CompletionIndicator.tsx`
+- Props: `percentage: number`, `missingFields: string[]` — passed as static mock values from the page (`70`, `["Phone", "Location", "Education"]`) matching the design exactly, not computed (completion calculation is feature 06's job per `build-plan.md`)
+- Card: `flex items-center justify-between gap-6 rounded-2xl border border-border bg-surface p-6 shadow`
+- Missing-field pill: `rounded-full bg-error/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-error`
+- Ring: inline SVG, two concentric `<circle>` (track `stroke-error/15`, fill `stroke-error`) with `strokeDasharray`/`strokeDashoffset` driven by `percentage`, wrapped in a `-rotate-90` svg so the arc starts at 12 o'clock; the `<text>` counter-rotates `rotate-90` to stay upright. No `error-light` token existed for the track, so `stroke-error/15` (Tailwind opacity modifier on the existing `--color-error` token) is used instead of a new hardcoded color.
+
+### ResumeUpload
+
+- Path: `components/profile/ResumeUpload.tsx`
+- Card: `rounded-2xl border border-border bg-surface p-6 shadow`
+- Dropzone: `rounded-lg border border-dashed border-border-muted bg-surface-secondary px-6 py-12 text-center`; drag-over state swaps to `border-accent bg-accent-muted`
+- Upload icon circle: `flex h-12 w-12 items-center justify-center rounded-full bg-surface shadow` containing a `lucide-react` `UploadCloud` icon in `text-accent`
+- "Select Resume" is a `Button variant="secondary"` that clicks a hidden native `<input type="file" accept="application/pdf">`
+- "Generate Resume from Profile" is a `Button variant="primary"` with a `FileText` icon, below a `border-t border-border` divider
+
+### TagInput (shared — Skills and Industries)
+
+- Path: `components/profile/TagInput.tsx`
+- Props: `tags: string[]`, `onChange: (tags: string[]) => void`, `placeholder: string`
+- Row: `Input` (flex-1) + `Button variant="secondary"` labeled "Add"; Enter key also adds
+- Tag chip (not a pill — matches the design's rectangular chip, distinct from the pill-shaped missing-field badges above): `flex items-center gap-1.5 rounded-md bg-surface-secondary px-3 py-1.5 text-sm font-medium text-text-primary`, with a `lucide-react` `X` remove button
+
+### WorkExperienceRole
+
+- Path: `components/profile/WorkExperienceRole.tsx`, exports `WorkExperienceRoleData` type
+- Renders Company Name / Job Title / Start Date / End Date + "Currently working here" checkbox / Key Responsibilities for one role; `onRemove?` prop shows a `Trash2` icon top-right, only passed when there's more than one role
+- Start/End Date use native `<input type="month">`; checking "Currently working here" clears and disables End Date
+
+### ProfileForm
+
+- Path: `components/profile/ProfileForm.tsx` — `"use client"`, all state local (`useState`), no Server Action call yet; Save Profile button's `onSubmit` just calls `preventDefault()`
+- Card: `rounded-2xl border border-border bg-surface p-6 shadow`; each subsection (Personal Info, Professional Info, Work Experience, Education, Job Preferences) separated by `border-t border-border pt-6`
+- Up to 3 work experience roles via `WorkExperienceRole`, added with a `+ Add role` accent-colored link (hidden once at the cap)
+- Save Profile: `Button variant="primary" className="mt-8 w-full py-3 text-base"`
+- **Decision:** the design has no Cover Letter Tone field, but `build-plan.md` and `profiles.cover_letter_tone` (DB column) both call for one. Followed the design exactly per explicit instruction — Cover Letter Tone is not in this form. Needs to be added in feature 06 or as a follow-up; flagged to the user.
+- Initial mock work-experience role uses a fixed id (`"role-1"`), not `crypto.randomUUID()` — the latter produces different values on server vs. client render and caused a real hydration mismatch (caught via Playwright console check, fixed before signing off). New roles added via "Add role" still use `crypto.randomUUID()` safely, since that only runs client-side after a user click, never during SSR.
