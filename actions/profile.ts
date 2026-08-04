@@ -80,11 +80,16 @@ export async function saveProfile(
 }
 
 const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024;
+const RESUME_SIGNED_URL_EXPIRES_IN = 3600;
 
 export async function uploadResume(
-  file: File,
+  formData: FormData,
 ): Promise<{ success: boolean; error?: string; url?: string }> {
   try {
+    const file = formData.get("resume");
+    if (!(file instanceof File)) {
+      return { success: false, error: "No file provided." };
+    }
     if (file.type !== "application/pdf") {
       return { success: false, error: "Only PDF files are supported." };
     }
@@ -109,13 +114,27 @@ export async function uploadResume(
       return { success: false, error: "Failed to upload resume. Please try again." };
     }
 
+    // The "resumes" bucket is private (own files only, per architecture.md) — the
+    // bare `uploaded.url` is an authenticated API endpoint, not a directly linkable
+    // URL, so opening it in a new tab 401s. Sign it so "View resume" actually works.
+    const { data: signed, error: signError } = await insforge.storage
+      .from("resumes")
+      .createSignedUrl(path, RESUME_SIGNED_URL_EXPIRES_IN);
+
+    if (signError || !signed) {
+      console.error("[actions/profile]", signError);
+      return { success: false, error: "Resume uploaded but failed to generate a link. Please try again." };
+    }
+
     // Upsert (not update) — a brand-new user may not have a profiles row yet
     // if they upload a resume before saving the rest of the form. Only the
     // columns present here are written; every other existing field is left
-    // untouched by PostgREST's ON CONFLICT DO UPDATE.
+    // untouched by PostgREST's ON CONFLICT DO UPDATE. The stored value is only
+    // ever read back as an existence flag (see profileToFormValues / page.tsx,
+    // which re-sign the deterministic path) since a signed URL expires.
     const { error: saveError } = await insforge.database
       .from("profiles")
-      .upsert([{ id: user.id, email: user.email, resume_pdf_url: uploaded.url }], {
+      .upsert([{ id: user.id, email: user.email, resume_pdf_url: signed.signedUrl }], {
         onConflict: "id",
       })
       .select();
@@ -126,7 +145,7 @@ export async function uploadResume(
     }
 
     revalidatePath("/profile");
-    return { success: true, url: uploaded.url };
+    return { success: true, url: signed.signedUrl };
   } catch (error) {
     console.error("[actions/profile]", error);
     return { success: false, error: "Failed to upload resume." };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { TagInput } from "@/components/profile/TagInput";
 import { WorkExperienceRole } from "@/components/profile/WorkExperienceRole";
 import { saveProfile } from "@/actions/profile";
+import { MAX_WORK_EXPERIENCE_ROLES } from "@/lib/profile";
 import type { ProfileFormValues, WorkExperienceRoleData } from "@/types";
-
-const MAX_ROLES = 3;
 
 function createRole(): WorkExperienceRoleData {
   return {
@@ -26,19 +25,20 @@ function createRole(): WorkExperienceRoleData {
 }
 
 type Props = {
-  initialValues: ProfileFormValues;
+  values: ProfileFormValues;
+  onChange: (values: ProfileFormValues) => void;
   email: string;
 };
 
-export function ProfileForm({ initialValues, email }: Props) {
-  const [values, setValues] = useState<ProfileFormValues>(initialValues);
+export function ProfileForm({ values, onChange, email }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [, startTransition] = useTransition();
 
-  const update = (patch: Partial<ProfileFormValues>) => setValues((v) => ({ ...v, ...patch }));
+  const update = (patch: Partial<ProfileFormValues>) => onChange({ ...values, ...patch });
 
   const addRole = () => {
-    if (values.roles.length >= MAX_ROLES) return;
+    if (values.roles.length >= MAX_WORK_EXPERIENCE_ROLES) return;
     update({ roles: [...values.roles, createRole()] });
   };
 
@@ -50,19 +50,24 @@ export function ProfileForm({ initialValues, email }: Props) {
     update({ roles: values.roles.filter((role) => role.id !== id) });
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setStatus(null);
 
-    const result = await saveProfile(values);
+    // saveProfile calls revalidatePath, which pushes an immediate refresh of this
+    // page. Without startTransition, that refresh can land ahead of this callback's
+    // own setStatus and get reconciled as a fresh mount, silently dropping the update.
+    startTransition(async () => {
+      const result = await saveProfile(values);
 
-    if (result.success) {
-      setStatus({ type: "success", message: "Profile saved." });
-    } else {
-      setStatus({ type: "error", message: result.error ?? "Failed to save profile." });
-    }
-    setIsSaving(false);
+      if (result.success) {
+        setStatus({ type: "success", message: "Profile saved." });
+      } else {
+        setStatus({ type: "error", message: result.error ?? "Failed to save profile." });
+      }
+      setIsSaving(false);
+    });
   };
 
   return (
@@ -218,7 +223,7 @@ export function ProfileForm({ initialValues, email }: Props) {
       <div className="mt-6 border-t border-border pt-6">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-text-primary">Work Experience</h3>
-          {values.roles.length < MAX_ROLES ? (
+          {values.roles.length < MAX_WORK_EXPERIENCE_ROLES ? (
             <button
               type="button"
               onClick={addRole}

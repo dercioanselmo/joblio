@@ -1,4 +1,12 @@
-import type { Profile, ProfileFormValues, ProfileCompletion, WorkExperienceRoleData } from "@/types";
+import type {
+  Profile,
+  ProfileFormValues,
+  ProfileCompletion,
+  WorkExperienceRoleData,
+  ExtractedProfileData,
+} from "@/types";
+
+export const MAX_WORK_EXPERIENCE_ROLES = 3;
 
 function splitList(value: string): string[] {
   return value
@@ -146,5 +154,47 @@ export function computeProfileCompletion(values: ProfileFormValues): ProfileComp
     percentage,
     missingFields,
     isComplete: missingFields.length === 0,
+  };
+}
+
+// Only overwrites a field when the resume actually provided a value for it.
+// Extraction can never blank out something the user already filled in —
+// especially important for fields like Remote Preference or Salary
+// Expectation that a resume would never mention in the first place (those
+// aren't even part of ExtractedProfileData, so they're untouched by
+// construction; this handles the fields that ARE extractable but may still
+// come back empty for a given resume).
+export function mergeExtractedIntoValues(
+  current: ProfileFormValues,
+  extracted: ExtractedProfileData,
+): ProfileFormValues {
+  const mergedSkills = [...current.skills];
+  for (const skill of extracted.skills) {
+    if (skill.trim() && !mergedSkills.includes(skill)) mergedSkills.push(skill);
+  }
+
+  const extractedRoles: WorkExperienceRoleData[] = extracted.roles
+    .filter((role) => role.company.trim() || role.title.trim())
+    .slice(0, MAX_WORK_EXPERIENCE_ROLES)
+    .map((role, index) => ({ id: `extracted-role-${index}`, ...role }));
+
+  return {
+    ...current,
+    fullName: extracted.fullName.trim() || current.fullName,
+    phone: extracted.phone.trim() || current.phone,
+    location: extracted.location.trim() || current.location,
+    linkedinUrl: extracted.linkedinUrl.trim() || current.linkedinUrl,
+    portfolioUrl: extracted.portfolioUrl.trim() || current.portfolioUrl,
+    currentTitle: extracted.currentTitle.trim() || current.currentTitle,
+    experienceLevel: extracted.experienceLevel.trim() || current.experienceLevel,
+    yearsExperience: extracted.yearsExperience.trim() || current.yearsExperience,
+    skills: mergedSkills,
+    roles: extractedRoles.length > 0 ? extractedRoles : current.roles,
+    education: {
+      degree: extracted.education.degree.trim() || current.education.degree,
+      fieldOfStudy: extracted.education.fieldOfStudy.trim() || current.education.fieldOfStudy,
+      institution: extracted.education.institution.trim() || current.education.institution,
+      graduationYear: extracted.education.graduationYear.trim() || current.education.graduationYear,
+    },
   };
 }

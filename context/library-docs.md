@@ -126,22 +126,35 @@ const { error } = await insforge
 
 ### Storage
 
+The installed `@insforge/sdk`'s actual `storage.from(bucket).upload(path, file)` is 2-arg
+(no options object — same path always overwrites, no explicit `upsert` flag) and returns
+`{ data: { key, bucket, size, mimeType, uploadedAt, url }, error }`. Confirmed by reading
+the installed `.d.ts` directly, not assumed — this differs from an earlier version of this
+doc that showed a 3-arg `upload(path, file, { upsert: true })` and a `getPublicUrl` read.
+
 ```typescript
 // Upload file
 const { data, error } = await insforge.storage
   .from("resumes")
-  .upload(`${userId}/resume.pdf`, fileBuffer, {
-    contentType: "application/pdf",
-    upsert: true, // overwrites existing file
-  });
-
-// Get public URL
-const { data } = insforge.storage
-  .from("resumes")
-  .getPublicUrl(`${userId}/resume.pdf`);
-
-const url = data.publicUrl;
+  .upload(`${userId}/resume.pdf`, file);
 ```
+
+**The `resumes` bucket is private** (`public: false` — architecture.md: "authenticated users
+only, own files only"). `data.url` from `upload()` is a bare authenticated API endpoint, not
+a directly linkable URL — opening it in a browser tab with no Authorization header 401s. For
+anything the browser will load directly (a "View resume" link, an `<img>`/`<iframe>` src),
+always generate a signed URL instead:
+
+```typescript
+const { data: signed, error } = await insforge.storage
+  .from("resumes")
+  .createSignedUrl(`${userId}/resume.pdf`, 3600); // expiresIn seconds, default 3600, max 604800
+
+const url = signed?.signedUrl; // fetchable with no auth header, expires
+```
+
+`getPublicUrl()` only produces a working link for buckets created with `public: true` —
+do not use it against `resumes`.
 
 **Storage paths:**
 
@@ -149,8 +162,11 @@ const url = data.publicUrl;
 
 **Rules:**
 
-- Always use `upsert: true` for base resume uploads — overwrites existing file
-- Always save the public URL back to the DB after upload
+- Uploading to the same path always overwrites — no separate upsert flag needed
+- Never persist a signed URL long-term as if it were permanent — it expires. Store just
+  enough to know a resume exists (e.g. `profiles.resume_pdf_url` as an existence flag) and
+  re-sign the deterministic path fresh wherever the link is actually rendered
+- Always wrap uses of the signed URL in an `error`/null check before rendering a link
 - Never write files to disk — always upload buffer directly to storage
 
 ---

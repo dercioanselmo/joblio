@@ -74,3 +74,22 @@ export type ProfileCompletion = {
   missingFields: string[];
   isComplete: boolean;
 };
+
+// Best-effort fields GPT-4o can realistically pull from resume text. Excludes
+// preference-only fields a resume would never contain (work authorization,
+// remote preference, salary expectation, preferred locations, job titles
+// seeking, cover letter tone, industries) so extraction can never blank those
+// out — see mergeExtractedIntoValues in lib/profile.ts.
+export type ExtractedProfileData = {
+  fullName: string;
+  phone: string;
+  location: string;
+  linkedinUrl: string;
+  portfolioUrl: string;
+  currentTitle: string;
+  experienceLevel: string;
+  yearsExperience: string;
+  skills: string[];
+  roles: WorkExperienceEntry[];
+  education: EducationDetails;
+};
