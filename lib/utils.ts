@@ -4,6 +4,16 @@ export function cn(...classes: Array<string | false | null | undefined>): string
 
 export const MATCH_THRESHOLD = 70;
 
+// Strips characters that have special meaning in PostgREST's .or() filter
+// string syntax (comma separates filters, parens group them) so free-text
+// search input can never be parsed as extra filter clauses, then escapes
+// ilike's own wildcard characters so a literal % or _ in the search text
+// matches literally instead of acting as a SQL wildcard.
+export function sanitizeSearchTerm(term: string): string {
+  const stripped = term.replace(/[,()]/g, "");
+  return stripped.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
+
 export function formatRelativeDate(isoDate: string): string {
   const then = new Date(isoDate).getTime();
   const diffMs = Date.now() - then;
