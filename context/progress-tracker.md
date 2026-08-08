@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 4 — Job Details Page
-**Last completed:** 11 Filter + Sort + Pagination
-**Next:** 12 Job Details Page — Full UI
+**Last completed:** 12 Job Details Page — Full UI
+**Next:** 13 Company Research Agent
 
 ---
 
@@ -36,7 +36,7 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ### Phase 4 — Job Details Page
 
-- [ ] 12 Job Details Page — Full UI
+- [x] 12 Job Details Page — Full UI
 - [ ] 13 Company Research Agent
 
 ### Phase 5 — Dashboard
@@ -50,6 +50,13 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Decisions Made During Build
 
+- 12 Job Details Page — Full UI built (2026-08-08) against `context/designs/job-details.png`, real DB data wired immediately per build-plan.md ("Job data from DB is already available from Phase 3 — wire real data for all job info and match sections immediately. Company research section shows empty state only"), not mock. New `app/(app)/find-jobs/[id]/page.tsx` + `components/job-details/` (`JobInfo`, `MatchScore`, `JobDescription`, `CompanyResearch`, `JobActions`).
+  - Fetches the job scoped to both `id` and the authenticated `user.id` (never id alone — RLS would already block a cross-user read, but the explicit filter matches this project's "always scope InsForge queries to the current user" invariant and gives a clean `notFound()` instead of relying on RLS alone). Redirects to `/login` if unauthenticated, `notFound()` (real Next.js 404) if the job doesn't exist or isn't this user's.
+  - **Handles the null-`match_score` case throughout** (real, current data — most existing rows have no score yet, from the ongoing Claude billing block, see feature 10's AC-5 amendment): header badge shows a neutral "Not yet scored" pill instead of a percentage; AI Match Reasoning shows "No match reasoning available yet."; matched/gap skills each independently show their own empty-state line ("No matched skills available yet." / "No gap skills identified.") rather than hiding the whole card. All verified live via real screenshots against both a scored real job (77%) and an unscored one, not just reasoned about.
+  - **Match score badge in the header uses a different color rule than `JobsTable`'s bar** (90/80 cutoffs, established in feature 09): this pill follows `ui-tokens.md`'s originally documented Match Score Colors table (90-100/70-89 green, 50-69 orange, below 50 gray) instead, since `job-details.png` shows 85% as green — which the *original* documented table already predicts correctly (70-89% counts as green there), unlike the find-jobs table's colors which needed a correction. Two different components, two independently-verified color rules; don't assume they must match.
+  - **"Company Research" button is present but inert** (no `onClick`), matching the established precedent from feature 05's "Generate Resume from Profile" button (built inert, wired two features later in 08) — feature 13 is the Company Research Agent that will wire it.
+  - **Job rows in `JobsTable` are now clickable**, navigating to `/find-jobs/{id}` — not explicitly in build-plan's feature 12 section, but `project-overview.md` states the flow explicitly ("Click job row → opens job details page") and the new page would otherwise be unreachable through any real UI action. Isolated the client boundary to a new `components/find-jobs/JobRow.tsx` (`"use client"`, `useRouter().push()` on row click) rather than converting the whole `JobsTable`/page to a client component, since nothing else on that page needs it.
+  - Verified live end to end against the real InsForge project (not just type-checked): temporarily patched the page to use an admin client + bypassed the `/find-jobs` proxy check (same precedent as every prior screenshot verification), rendered against two real job rows (one scored 77%, one with a `null` score) with zero console/page errors, confirmed pixel-level fidelity to the design, then reverted both temporary changes and confirmed `proxy.ts` byte-identical to the last commit again.
 - 11 Filter + Sort + Pagination built (2026-08-08), directly off the user reporting the feature 09/10 filter bar as "not working" — which was expected at the time (build-plan explicitly deferred it), so this closes that gap rather than fixing a bug. State lives in the URL (`?q=&filter=&sort=&page=`), not client-only state, so the Find Jobs page stays a Server Component doing the actual DB query (per code-standards.md: data fetching happens in Server Components) and results are shareable/bookmarkable/back-button-safe.
   - `app/(app)/find-jobs/page.tsx` now reads `searchParams` (a `Promise` in this Next.js version — awaited, not destructured directly), parses `q`/`filter`/`sort`/`page` with safe fallbacks, and builds one InsForge/postgrest query: `.or("company.ilike.%term%,title.ilike.%term%")` for text search, `.gte`/`.lt("match_score", MATCH_THRESHOLD)` for High/Low Match, `.order("match_score", {ascending:false, nullsFirst:false})` for the Match Score sort (unscored jobs — see the AC-5 amendment above — always sink to the bottom regardless of sort direction, never cluttering the top), `.order("found_at", ...)` for Newest/Oldest, and `.range()` for real pagination.
   - **Security fix, not just a feature add: `sanitizeSearchTerm()` (`lib/utils.ts`).** The text search value goes into a raw PostgREST filter string (`.or(...)`), which is not a parameterized query — an unescaped comma or parenthesis in the search box could be parsed as extra filter clauses instead of literal text, and an unescaped `%`/`_` would act as a SQL wildcard instead of a literal character. `sanitizeSearchTerm()` strips `,()` and escapes `%`/`_`/`\` before the value ever reaches the query string. Verified live against the real DB (see below) with a plain literal term; the escaping itself follows directly from PostgREST's own filter-string syntax rules, not a guess.
