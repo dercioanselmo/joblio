@@ -93,3 +93,52 @@ export type ExtractedProfileData = {
   roles: WorkExperienceEntry[];
   education: EducationDetails;
 };
+
+export type AgentRun = {
+  id: string;
+  user_id: string;
+  status: "running" | "completed" | "failed";
+  job_title_searched: string | null;
+  location_searched: string | null;
+  jobs_found: number;
+  started_at: string;
+  completed_at: string | null;
+};
+
+export type CompanyResearch = {
+  companyOverview: string;
+  techStack: string[];
+  culture: string[];
+  whyThisRole: string;
+  yourEdge: string[];
+  gapsToAddress: string[];
+  smartQuestions: string[];
+  interviewPrep: string[];
+  sources: string[];
+};
+
+export type Job = {
+  id: string;
+  run_id: string | null;
+  user_id: string;
+  source: "search" | "url";
+  source_url: string | null;
+  external_apply_url: string | null;
+  title: string | null;
+  company: string | null;
+  location: string | null;
+  salary: string | null;
+  job_type: string | null;
+  about_role: string | null;
+  responsibilities: string[] | null;
+  requirements: string[] | null;
+  nice_to_have: string[] | null;
+  benefits: string[] | null;
+  about_company: string | null;
+  match_score: number | null;
+  match_reason: string | null;
+  matched_skills: string[] | null;
+  missing_skills: string[] | null;
+  company_research: CompanyResearch | null;
+  found_at: string;
+};
