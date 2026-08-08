@@ -506,7 +506,15 @@ const response = await openai.chat.completions.create({
 - If browser research returns empty — still run synthesis with job + profile only
 - yourEdge, gapsToAddress, and smartQuestions are the most valuable fields — never skip them
 
-## OpenAI GPT-4o
+## OpenAI GPT-4o (superseded by Claude — see note)
+
+**Not currently used.** `OPENAI_API_KEY` has no funded account; `openai` has been uninstalled. Every
+AI call built so far (profile extraction — feature 07, resume generation — feature 08) uses
+`@anthropic-ai/sdk` instead, with a single forced `tool_choice` call to get schema-shaped JSON out
+(the reliable Claude equivalent of `response_format: json_object` below) — see
+`app/api/resume/extract/route.ts` and `app/api/resume/generate/route.tsx` for the concrete pattern.
+The section below is kept as the original spec/fallback reference in case a funded OpenAI key is
+ever added back — do not install `openai` or write against it without checking `.env.local` first.
 
 **Check first:** Check AGENTS.md for an installed OpenAI skill. The skill will have the latest API patterns and model capabilities.
 

@@ -16,10 +16,12 @@ export function ResumeUpload({ initialResumeUrl, onExtracted }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [resumeUrl, setResumeUrl] = useState(initialResumeUrl);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
 
@@ -87,6 +89,28 @@ export function ResumeUpload({ initialResumeUrl, onExtracted }: Props) {
       setExtractError("Failed to extract profile data. Please try again.");
     } finally {
       setIsExtracting(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    setGenerateError(null);
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch("/api/resume/generate", { method: "POST" });
+      const result = await response.json();
+
+      if (result.success && result.url) {
+        setResumeUrl(result.url);
+        setUploadedFileName("resume.pdf");
+      } else {
+        setGenerateError(result.error ?? "Failed to generate resume.");
+      }
+    } catch (err) {
+      console.error("[ResumeUpload]", err);
+      setGenerateError("Failed to generate resume. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -179,11 +203,17 @@ export function ResumeUpload({ initialResumeUrl, onExtracted }: Props) {
         </div>
       ) : null}
 
+      {generateError ? (
+        <div className="mt-4 rounded-md border border-error/20 bg-error/10 px-4 py-3 text-sm text-error">
+          {generateError}
+        </div>
+      ) : null}
+
       <div className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 sm:flex-row">
         <p className="text-sm text-text-secondary">Need a fresh document based on the fields below?</p>
-        <Button type="button" variant="primary">
+        <Button type="button" variant="primary" disabled={isGenerating} onClick={handleGenerate}>
           <FileText className="h-4 w-4" aria-hidden="true" />
-          Generate Resume from Profile
+          {isGenerating ? "Generating..." : "Generate Resume from Profile"}
         </Button>
       </div>
     </div>
