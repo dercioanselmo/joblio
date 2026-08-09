@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import { z } from "zod";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { azureOpenai, AZURE_OPENAI_DEPLOYMENT } from "@/lib/azure-openai";
 import type { Profile } from "@/types";
-
-const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY! });
 
 const RESUME_SIGNED_URL_EXPIRES_IN = 3600;
 
@@ -39,27 +37,30 @@ tool with polished resume content for the candidate described in the user messag
   concise, achievement-oriented bullet points in clean professional language. Never invent
   employers, titles, dates, or accomplishments not implied by the candidate's own input.`;
 
-const RECORD_RESUME_TOOL: Anthropic.Tool = {
-  name: "record_resume_content",
-  description: "Record polished resume content generated for the candidate.",
-  input_schema: {
-    type: "object",
-    properties: {
-      summary: { type: "string" },
-      roles: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            company: { type: "string" },
-            title: { type: "string" },
-            bullets: { type: "array", items: { type: "string" } },
+const RECORD_RESUME_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "record_resume_content",
+    description: "Record polished resume content generated for the candidate.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        roles: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              company: { type: "string" },
+              title: { type: "string" },
+              bullets: { type: "array", items: { type: "string" } },
+            },
+            required: ["company", "title", "bullets"],
           },
-          required: ["company", "title", "bullets"],
         },
       },
+      required: ["summary", "roles"],
     },
-    required: ["summary", "roles"],
   },
 };
 
@@ -210,23 +211,23 @@ ${
     : "No work experience provided."
 }`;
 
-    const message = await anthropic.messages.create({
-      model: "claude-opus-5",
+    const completion = await azureOpenai.chat.completions.create({
+      model: AZURE_OPENAI_DEPLOYMENT,
       max_tokens: 1500,
-      system: GENERATION_SYSTEM_PROMPT,
       tools: [RECORD_RESUME_TOOL],
-      tool_choice: { type: "tool", name: "record_resume_content" },
-      messages: [{ role: "user", content: userPrompt }],
+      tool_choice: { type: "function", function: { name: "record_resume_content" } },
+      messages: [
+        { role: "system", content: GENERATION_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) {
+    const toolCall = completion.choices[0]?.message.tool_calls?.[0];
+    if (!toolCall || toolCall.type !== "function") {
       return NextResponse.json({ success: false, error: "Failed to generate resume." }, { status: 500 });
     }
 
-    const parsed = generatedResumeSchema.safeParse(toolUse.input);
+    const parsed = generatedResumeSchema.safeParse(JSON.parse(toolCall.function.arguments));
     if (!parsed.success) {
       console.error("[resume/generate]", parsed.error.flatten());
       return NextResponse.json({ success: false, error: "Failed to generate resume." }, { status: 500 });

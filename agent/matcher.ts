@@ -1,9 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { Profile } from "@/types";
 import type { NormalizedAdzunaJob, ScoredJob } from "@/agent/types";
-
-const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY! });
+import { azureOpenai, AZURE_OPENAI_DEPLOYMENT } from "@/lib/azure-openai";
 
 const matchResultSchema = z.object({
   matchScore: z.number().int().min(0).max(100),
@@ -22,18 +20,21 @@ search app. Call the record_match tool with the result.
 - missingSkills lists skills the job wants that the candidate's profile doesn't show (max 8, most
   relevant first). Leave both arrays empty if truly nothing matches or is missing.`;
 
-const RECORD_MATCH_TOOL: Anthropic.Tool = {
-  name: "record_match",
-  description: "Record the match score between a candidate and a job posting.",
-  input_schema: {
-    type: "object",
-    properties: {
-      matchScore: { type: "integer", minimum: 0, maximum: 100 },
-      matchReason: { type: "string" },
-      matchedSkills: { type: "array", items: { type: "string" } },
-      missingSkills: { type: "array", items: { type: "string" } },
+const RECORD_MATCH_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "record_match",
+    description: "Record the match score between a candidate and a job posting.",
+    parameters: {
+      type: "object",
+      properties: {
+        matchScore: { type: "integer", minimum: 0, maximum: 100 },
+        matchReason: { type: "string" },
+        matchedSkills: { type: "array", items: { type: "string" } },
+        missingSkills: { type: "array", items: { type: "string" } },
+      },
+      required: ["matchScore", "matchReason", "matchedSkills", "missingSkills"],
     },
-    required: ["matchScore", "matchReason", "matchedSkills", "missingSkills"],
   },
 };
 
@@ -58,24 +59,24 @@ export async function scoreJob(
   profile: Profile,
 ): Promise<{ success: true; job: ScoredJob } | { success: false; error: string }> {
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-opus-5",
+    const completion = await azureOpenai.chat.completions.create({
+      model: AZURE_OPENAI_DEPLOYMENT,
       max_tokens: 400,
       temperature: 0.3,
-      system: MATCHING_SYSTEM_PROMPT,
       tools: [RECORD_MATCH_TOOL],
-      tool_choice: { type: "tool", name: "record_match" },
-      messages: [{ role: "user", content: buildUserPrompt(job, profile) }],
+      tool_choice: { type: "function", function: { name: "record_match" } },
+      messages: [
+        { role: "system", content: MATCHING_SYSTEM_PROMPT },
+        { role: "user", content: buildUserPrompt(job, profile) },
+      ],
     });
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) {
+    const toolCall = completion.choices[0]?.message.tool_calls?.[0];
+    if (!toolCall || toolCall.type !== "function") {
       return { success: false, error: "No match result returned." };
     }
 
-    const parsed = matchResultSchema.safeParse(toolUse.input);
+    const parsed = matchResultSchema.safeParse(JSON.parse(toolCall.function.arguments));
     if (!parsed.success) {
       console.error("[agent/matcher]", parsed.error.flatten());
       return { success: false, error: "Match result failed validation." };

@@ -1,11 +1,9 @@
 import path from "node:path";
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { PDFParse } from "pdf-parse";
 import { z } from "zod";
 import { createInsforgeServer } from "@/lib/insforge-server";
-
-const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY! });
+import { azureOpenai, AZURE_OPENAI_DEPLOYMENT } from "@/lib/azure-openai";
 
 // pdf-parse's Node build resolves its pdf.js worker via a bundler-relative path,
 // which Turbopack relocates into .next/dev/server/chunks and breaks ("Setting up
@@ -69,63 +67,66 @@ contain that information. Never invent data.
 - education.degree must be exactly one of "high_school", "associate", "bachelor", "master", "doctorate",
   "other", or "" if unknown.`;
 
-const RECORD_PROFILE_TOOL: Anthropic.Tool = {
-  name: "record_profile",
-  description: "Record structured profile data extracted from a resume.",
-  input_schema: {
-    type: "object",
-    properties: {
-      fullName: { type: "string" },
-      phone: { type: "string" },
-      location: { type: "string" },
-      linkedinUrl: { type: "string" },
-      portfolioUrl: { type: "string" },
-      currentTitle: { type: "string" },
-      experienceLevel: { type: "string", enum: ["junior", "mid", "senior", "lead", ""] },
-      yearsExperience: { type: "string" },
-      skills: { type: "array", items: { type: "string" } },
-      roles: {
-        type: "array",
-        items: {
+const RECORD_PROFILE_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "record_profile",
+    description: "Record structured profile data extracted from a resume.",
+    parameters: {
+      type: "object",
+      properties: {
+        fullName: { type: "string" },
+        phone: { type: "string" },
+        location: { type: "string" },
+        linkedinUrl: { type: "string" },
+        portfolioUrl: { type: "string" },
+        currentTitle: { type: "string" },
+        experienceLevel: { type: "string", enum: ["junior", "mid", "senior", "lead", ""] },
+        yearsExperience: { type: "string" },
+        skills: { type: "array", items: { type: "string" } },
+        roles: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              company: { type: "string" },
+              title: { type: "string" },
+              startDate: { type: "string" },
+              endDate: { type: "string" },
+              current: { type: "boolean" },
+              responsibilities: { type: "string" },
+            },
+            required: ["company", "title", "startDate", "endDate", "current", "responsibilities"],
+          },
+        },
+        education: {
           type: "object",
           properties: {
-            company: { type: "string" },
-            title: { type: "string" },
-            startDate: { type: "string" },
-            endDate: { type: "string" },
-            current: { type: "boolean" },
-            responsibilities: { type: "string" },
+            degree: {
+              type: "string",
+              enum: ["high_school", "associate", "bachelor", "master", "doctorate", "other", ""],
+            },
+            fieldOfStudy: { type: "string" },
+            institution: { type: "string" },
+            graduationYear: { type: "string" },
           },
-          required: ["company", "title", "startDate", "endDate", "current", "responsibilities"],
+          required: ["degree", "fieldOfStudy", "institution", "graduationYear"],
         },
       },
-      education: {
-        type: "object",
-        properties: {
-          degree: {
-            type: "string",
-            enum: ["high_school", "associate", "bachelor", "master", "doctorate", "other", ""],
-          },
-          fieldOfStudy: { type: "string" },
-          institution: { type: "string" },
-          graduationYear: { type: "string" },
-        },
-        required: ["degree", "fieldOfStudy", "institution", "graduationYear"],
-      },
+      required: [
+        "fullName",
+        "phone",
+        "location",
+        "linkedinUrl",
+        "portfolioUrl",
+        "currentTitle",
+        "experienceLevel",
+        "yearsExperience",
+        "skills",
+        "roles",
+        "education",
+      ],
     },
-    required: [
-      "fullName",
-      "phone",
-      "location",
-      "linkedinUrl",
-      "portfolioUrl",
-      "currentTitle",
-      "experienceLevel",
-      "yearsExperience",
-      "skills",
-      "roles",
-      "education",
-    ],
   },
 };
 
@@ -162,26 +163,26 @@ export async function POST() {
       );
     }
 
-    const message = await anthropic.messages.create({
-      model: "claude-opus-5",
+    const completion = await azureOpenai.chat.completions.create({
+      model: AZURE_OPENAI_DEPLOYMENT,
       max_tokens: 2000,
-      system: EXTRACTION_SYSTEM_PROMPT,
       tools: [RECORD_PROFILE_TOOL],
-      tool_choice: { type: "tool", name: "record_profile" },
-      messages: [{ role: "user", content: extractedText.slice(0, 12000) }],
+      tool_choice: { type: "function", function: { name: "record_profile" } },
+      messages: [
+        { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
+        { role: "user", content: extractedText.slice(0, 12000) },
+      ],
     });
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) {
+    const toolCall = completion.choices[0]?.message.tool_calls?.[0];
+    if (!toolCall || toolCall.type !== "function") {
       return NextResponse.json(
         { success: false, error: "Failed to extract profile data." },
         { status: 500 },
       );
     }
 
-    const parsed = extractedProfileSchema.safeParse(toolUse.input);
+    const parsed = extractedProfileSchema.safeParse(JSON.parse(toolCall.function.arguments));
     if (!parsed.success) {
       console.error("[resume/extract]", parsed.error.flatten());
       return NextResponse.json(
