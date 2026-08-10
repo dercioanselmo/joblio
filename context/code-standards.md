@@ -247,7 +247,9 @@ All environment variables defined in `.env.local` for development. Never hardcod
 | `NEXT_PUBLIC_INSFORGE_ANON_KEY` | lib/insforge-client.ts |
 | `BROWSERBASE_API_KEY`           | lib/browserbase.ts     |
 | `BROWSERBASE_PROJECT_ID`        | lib/browserbase.ts     |
-| `OPENAI_API_KEY`                | agent/ functions       |
+| `AZURE_OPENAI_API_BASE_URL`     | lib/azure-openai.ts    |
+| `AZURE_OPENAI_API_KEY`          | lib/azure-openai.ts    |
+| `AZURE_OPENAI_DEPLOYMENT`       | lib/azure-openai.ts    |
 | `ADZUNA_APP_ID`                 | lib/adzuna.ts          |
 | `ADZUNA_APP_KEY`                | lib/adzuna.ts          |
 | `NEXT_PUBLIC_POSTHOG_KEY`       | lib/posthog-client.ts  |
@@ -308,7 +310,7 @@ Approved dependencies for this project:
 - `@insforge/ssr` — InsForge client
 - `@browserbasehq/sdk` — Browserbase sessions
 - `@browserbasehq/stagehand` — AI browser control
-- `openai` — GPT-4o API
+- `openai` — GPT-4o API (via the Azure AI Foundry deployment — `lib/azure-openai.ts`, never a bare `OPENAI_API_KEY` client)
 - `posthog-js` — PostHog browser client
 - `posthog-node` — PostHog server client
 - `@react-pdf/renderer` — Resume PDF generation

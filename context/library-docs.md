@@ -304,6 +304,8 @@ Browserbase sessions run on Browserbase's cloud infrastructure, not inside your 
 
 **Check first:** Check AGENTS.md for an installed Stagehand skill. If a Stagehand MCP server is configured — use it. The skill/MCP will have the latest act() and extract() patterns.
 
+**Version note (2026-08-09, confirmed against the installed `@browserbasehq/stagehand@3.7.1` `.d.ts` files, not guessed — this package has jumped major versions since these docs were first written and the shape below is genuinely different, same kind of drift that broke `pdf-parse` in feature 07):** `extract()` takes positional args — `extract(instruction: string, schema, options?)` — not a single `{instruction, schema}` object. `model` has no `"openai/gpt-4o"`-style provider-prefixed string; point it at the Azure deployment instead via `ClientOptions` (`modelName`/`apiKey`/`baseURL`/`openaiEndpointFormat: "chat"`), using the same `lib/azure-openai.ts` env vars as every other AI call, not `OPENAI_API_KEY`. `stagehand.context.activePage()` and `stagehand.init()` are unchanged from below. Before touching this file again, re-check the installed version's `.d.ts` rather than trusting this snippet blindly — it drifts.
+
 ### Initialisation
 
 ```typescript
@@ -314,7 +316,12 @@ const stagehand = new Stagehand({
   apiKey: process.env.BROWSERBASE_API_KEY!,
   projectId: process.env.BROWSERBASE_PROJECT_ID!,
   browserbaseSessionID: session.id,
-  model: { modelName: "openai/gpt-4o", apiKey: process.env.OPENAI_API_KEY! },
+  model: {
+    modelName: process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o",
+    apiKey: process.env.AZURE_OPENAI_API_KEY!,
+    baseURL: process.env.AZURE_OPENAI_API_BASE_URL!,
+    openaiEndpointFormat: "chat",
+  },
   disablePino: true,
 });
 
@@ -327,10 +334,9 @@ const page = stagehand.context.activePage()!;
 ```typescript
 import { z } from "zod";
 
-const result = await stagehand.extract({
-  instruction:
-    "Extract the company overview, main product description, and any technology mentions from this page.",
-  schema: z.object({
+const result = await stagehand.extract(
+  "Extract the company overview, main product description, and any technology mentions from this page.",
+  z.object({
     companyOverview: z.string().optional(),
     mainProduct: z.string().optional(),
     techMentions: z.array(z.string()).optional(),
@@ -343,7 +349,7 @@ const result = await stagehand.extract({
       )
       .optional(),
   }),
-});
+);
 ```
 
 ### act()
@@ -506,27 +512,28 @@ const response = await openai.chat.completions.create({
 - If browser research returns empty — still run synthesis with job + profile only
 - yourEdge, gapsToAddress, and smartQuestions are the most valuable fields — never skip them
 
-## OpenAI GPT-4o (superseded by Claude — see note)
+## OpenAI GPT-4o (via Azure AI Foundry)
 
-**Not currently used.** `OPENAI_API_KEY` has no funded account; `openai` has been uninstalled. Every
-AI call built so far (profile extraction — feature 07, resume generation — feature 08) uses
-`@anthropic-ai/sdk` instead, with a single forced `tool_choice` call to get schema-shaped JSON out
-(the reliable Claude equivalent of `response_format: json_object` below) — see
-`app/api/resume/extract/route.ts` and `app/api/resume/generate/route.tsx` for the concrete pattern.
-The section below is kept as the original spec/fallback reference in case a funded OpenAI key is
-ever added back — do not install `openai` or write against it without checking `.env.local` first.
+**Live provider as of 2026-08-09.** `OPENAI_API_KEY` (never funded) and `CLAUDE_API_KEY` (ran out of
+credit after feature 10) are both dead ends — do not write new AI calls against either. A real Azure
+AI Foundry `gpt-4o` deployment backs the app now: `.env.local` has `AZURE_OPENAI_API_BASE_URL`,
+`AZURE_OPENAI_API_KEY`, and `AZURE_OPENAI_DEPLOYMENT` (defaults to `"gpt-4o"`). `lib/azure-openai.ts`
+exports `azureOpenai` (a standard `openai` SDK client with `baseURL` set to the Azure endpoint) and
+`AZURE_OPENAI_DEPLOYMENT` — always import both from there, never construct a fresh `OpenAI` client
+inline. Every call below uses `model: AZURE_OPENAI_DEPLOYMENT`, not the literal string `"gpt-4o"`.
+See `app/api/resume/extract/route.ts`, `app/api/resume/generate/route.tsx`, `agent/matcher.ts`, and
+`agent/research.ts` for the concrete patterns (forced tool-call for the first three, `response_format:
+json_object` for research synthesis).
 
 **Check first:** Check AGENTS.md for an installed OpenAI skill. The skill will have the latest API patterns and model capabilities.
 
 ### Structured JSON Response
 
 ```typescript
-import OpenAI from "openai";
+import { azureOpenai, AZURE_OPENAI_DEPLOYMENT } from "@/lib/azure-openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-const response = await openai.chat.completions.create({
-  model: "gpt-4o",
+const response = await azureOpenai.chat.completions.create({
+  model: AZURE_OPENAI_DEPLOYMENT,
   response_format: { type: "json_object" },
   temperature: 0.3,
   messages: [
@@ -558,7 +565,7 @@ const result = JSON.parse(response.choices[0].message.content!);
 
 **Rules:**
 
-- Model string is always `'gpt-4o'` — never use other model names
+- Model is always `AZURE_OPENAI_DEPLOYMENT` from `lib/azure-openai.ts` — never hardcode `"gpt-4o"` or construct a separate client
 - Always use `response_format: { type: 'json_object' }` for structured data
 - Always parse `response.choices[0].message.content` as string — even with json_object it returns a string
 - Always validate parsed JSON before using — wrap in try/catch

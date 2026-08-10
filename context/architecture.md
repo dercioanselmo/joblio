@@ -9,13 +9,13 @@
 | Cloud browser                  | Browserbase              | Company research — browsing company public pages |
 | AI browser control             | Stagehand                | Company page interaction and content extraction  |
 | Job Discovery                  | Adzuna API               | Job search and discovery                         |
-| AI model                       | OpenAI GPT-4o (spec) / Claude (actual) | Matching, research synthesis, extraction — see note below |
+| AI model                       | Azure AI Foundry `gpt-4o` deployment | Matching, research synthesis, extraction — see note below |
 | Analytics                      | PostHog                  | Event tracking and dashboard charts              |
 | PDF generation                 | @react-pdf/renderer      | Resume PDF rendering                             |
 | Styling                        | Tailwind CSS + shadcn/ui | UI components and styling                        |
 | Language                       | TypeScript strict        | Throughout                                       |
 
-**Note (2026-08-04+):** The build plan and this doc were originally written against OpenAI GPT-4o throughout. In practice `OPENAI_API_KEY` has no funded account while `CLAUDE_API_KEY` is real and working, so every AI call built so far (profile extraction — feature 07; resume generation — feature 08) uses `@anthropic-ai/sdk` instead, via a forced tool-call for schema-shaped JSON (the Claude equivalent of `response_format: json_object`). `openai` has been uninstalled. Not yet updated everywhere in this file/`library-docs.md`/`build-plan.md` — treat every "GPT-4o" reference as "Claude" until a feature that needs it is actually built, and update that section then.
+**Note (2026-08-09):** The build plan and this doc were originally written against OpenAI GPT-4o throughout, using `OPENAI_API_KEY`. That key was never funded. For a while (2026-08-04 through feature 10) every AI call instead used `@anthropic-ai/sdk` against `CLAUDE_API_KEY`, until that account also ran out of credit. Both are now superseded: a real Azure AI Foundry `gpt-4o` deployment was set up and `.env.local` now has working `AZURE_OPENAI_API_BASE_URL`/`AZURE_OPENAI_API_KEY`/`AZURE_OPENAI_DEPLOYMENT` values. `lib/azure-openai.ts` exports a shared `openai`-SDK client pointed at that `baseURL` — every AI call (profile extraction/resume generation from features 07-08, job matching from feature 10, company research synthesis from feature 13) now goes through it, using the standard `response_format: json_object`/forced-tool-call patterns `library-docs.md`'s OpenAI section already documents. `@anthropic-ai/sdk` is no longer imported anywhere in the app.
 
 ---
 
