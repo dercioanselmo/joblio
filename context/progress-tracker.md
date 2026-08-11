@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 5 — Dashboard
-**Last completed:** 14 Dashboard Page — Full UI
-**Next:** 15 Stats Bar — Real Data
+**Last completed:** 15 Stats Bar — Real Data
+**Next:** 16 Recent Activity — Real Data
 
 ---
 
@@ -42,7 +42,7 @@ Update this file after every completed feature. Any AI agent reading this should
 ### Phase 5 — Dashboard
 
 - [x] 14 Dashboard Page — Full UI
-- [ ] 15 Stats Bar — Real Data
+- [x] 15 Stats Bar — Real Data
 - [ ] 16 Recent Activity — Real Data
 - [ ] 17 Analytics Charts — PostHog Data
 
@@ -50,6 +50,9 @@ Update this file after every completed feature. Any AI agent reading this should
 
 ## Decisions Made During Build
 
+- 15 Stats Bar — Real Data built (2026-08-11). New `lib/dashboard.ts` (`computeDashboardStats`, a pure function over `{match_score, company_research, found_at}` rows — no DB access itself, mirrors `lib/profile.ts`'s mapper pattern). `app/(app)/dashboard/page.tsx` is now an `async` Server Component: auth-checks via `createInsforgeServer()` (`redirect("/login")` on no session, same pattern as `/find-jobs/[id]`), fetches the user's `jobs` rows (3 columns only), computes stats, passes them to `StatsBar` (now `{stats: DashboardStats}` instead of a hardcoded mock array).
+  - **Trend badge semantics weren't specified anywhere and had to be defined**, since `build-plan.md`'s feature 15 bullets only list the 4 headline numbers, not how "vs last week" is computed, yet feature 14's design already committed to showing trend badges on 2 of the 4 cards — leaving them hardcoded would have been a bug once real data landed. Total Jobs Found trend = relative % change in job count (this week vs the 7 days before that); Avg. Match Rate trend = percentage-**point** difference in average `match_score` over the same two windows (a rate metric, not a count — point difference reads correctly, relative % growth wouldn't). Both are `null` (badge hidden, not "+0%"/"N/A") whenever the prior week has no comparable data, which avoids a division-by-zero/undefined-average case. No red/negative-trend token exists in `ui-tokens.md`, so a decline still uses the same green badge tokens with a `-` sign rather than inventing an undocumented variant — the design never showed a negative case to design against.
+  - Verified against the real InsForge project, not just type-checked: ran the exact aggregate `computeDashboardStats()` implements directly as SQL via `insforge db query` against the real `dercio.anselmo@gmail.com` user's 56 real `jobs` rows — 56 total, 71% avg match, 4 companies researched, 56 this week, 0 in the prior week (all real rows are 3 days old, so the "prior week" window is genuinely empty, correctly producing `null` trends, not a bug). Then screenshotted the real rendered `StatsBar` — temporarily swapped the page's session-cookie client for an `@insforge/sdk` `createAdminClient()` scoped to that same real user id (a real OAuth session isn't automatable here — same precedent as feature 10/12's temporary-patch technique), confirmed all four numbers matched with both trend badges correctly absent, then reverted the page edit and the `proxy.ts` bypass immediately after; `proxy.ts` confirmed byte-identical to the last commit again.
 - 14 Dashboard Page — Full UI built (2026-08-11) against `context/designs/dashboard.png`, mock data only per build-plan (no DB/PostHog wiring — that's features 15-17). New `components/dashboard/` (`StatsBar`, `RecentActivity`, `CompanyResearchChart`, `JobsFoundChart`, `MatchScoreChart`), `app/(app)/dashboard/page.tsx` rebuilt from its placeholder.
   - **New approved dependency: `recharts`**, added to `code-standards.md`'s approved list (wasn't there before, despite `build-plan.md`'s feature 17 explicitly requiring it and `ui-tokens.md`'s Dashboard Chart Colors section already documenting recharts-shaped details like gradient area fills and dashed grid lines) — a real gap in the approved list, not a scope decision made here.
   - Each chart is its own `"use client"` component file (recharts requires a client boundary; `code-standards.md` also forbids multiple exported components per file) — `AnalyticsCharts.tsx` from `architecture.md`'s originally planned folder listing was not created, since the design interleaves `RecentActivity` between the Company Research chart and the other two charts rather than grouping all three charts together; composing them directly in `page.tsx` matched the actual design layout instead of forcing an artificial grouping. Same kind of file-split deviation as feature 13's `JobActions.tsx` note.

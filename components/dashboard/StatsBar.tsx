@@ -1,3 +1,5 @@
+import { formatTrend, type DashboardStats } from "@/lib/dashboard";
+
 type StatCardData = {
   label: string;
   value: string;
@@ -5,17 +7,39 @@ type StatCardData = {
   subtitle: string;
 };
 
-const STATS: StatCardData[] = [
-  { label: "Total Jobs Found", value: "284", trend: "+12%", subtitle: "vs last week" },
-  { label: "Avg. Match Rate", value: "82%", trend: "+3%", subtitle: "vs last week" },
-  { label: "Companies Researched", value: "35", subtitle: "Total researched" },
-  { label: "Jobs This Week", value: "28", subtitle: "New this week" },
-];
+type Props = {
+  stats: DashboardStats;
+};
 
-export function StatsBar() {
+export function StatsBar({ stats }: Props) {
+  const cards: StatCardData[] = [
+    {
+      label: "Total Jobs Found",
+      value: String(stats.totalJobsFound),
+      trend: stats.totalJobsTrend !== null ? formatTrend(stats.totalJobsTrend) : undefined,
+      subtitle: "vs last week",
+    },
+    {
+      label: "Avg. Match Rate",
+      value: `${stats.avgMatchRate}%`,
+      trend: stats.avgMatchRateTrend !== null ? formatTrend(stats.avgMatchRateTrend) : undefined,
+      subtitle: "vs last week",
+    },
+    {
+      label: "Companies Researched",
+      value: String(stats.companiesResearched),
+      subtitle: "Total researched",
+    },
+    {
+      label: "Jobs This Week",
+      value: String(stats.jobsThisWeek),
+      subtitle: "New this week",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {STATS.map((stat) => (
+      {cards.map((stat) => (
         <div key={stat.label} className="rounded-2xl border border-border bg-surface p-6 shadow">
           <p className="text-sm font-medium text-text-secondary">{stat.label}</p>
           <p className="mt-3 text-[30px] font-semibold leading-9 text-text-primary">{stat.value}</p>

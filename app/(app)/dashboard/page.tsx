@@ -1,8 +1,11 @@
+import { redirect } from "next/navigation";
 import { CompanyResearchChart } from "@/components/dashboard/CompanyResearchChart";
 import { JobsFoundChart } from "@/components/dashboard/JobsFoundChart";
 import { MatchScoreChart } from "@/components/dashboard/MatchScoreChart";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { StatsBar } from "@/components/dashboard/StatsBar";
+import { createInsforgeServer } from "@/lib/insforge-server";
+import { computeDashboardStats, type DashboardJobRow } from "@/lib/dashboard";
 
 const COMPANY_RESEARCH_DATA = [
   { day: "Mon", count: 2 },
@@ -32,11 +35,26 @@ const MATCH_SCORE_DATA = [
   { range: "90-100%", count: 35 },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const insforge = await createInsforgeServer();
+  const { data: authData } = await insforge.auth.getCurrentUser();
+  const user = authData?.user;
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: jobRows } = await insforge.database
+    .from("jobs")
+    .select("match_score, company_research, found_at")
+    .eq("user_id", user.id)
+    .overrideTypes<DashboardJobRow[], { merge: false }>();
+
+  const stats = computeDashboardStats(jobRows ?? []);
+
   return (
     <div className="min-h-screen px-8 py-10">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
-        <StatsBar />
+        <StatsBar stats={stats} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <RecentActivity />
