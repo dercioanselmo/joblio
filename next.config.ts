@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import path from "node:path";
 
 const nextConfig: NextConfig = {
+  // Traces only the files each route actually needs into .next/standalone,
+  // so the production Docker image doesn't need a full `npm install` layer.
+  output: "standalone",
   turbopack: {
     root: path.resolve(__dirname),
   },

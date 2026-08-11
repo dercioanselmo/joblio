@@ -1,0 +1,32 @@
+node_modules
+.next
+.git
+.github
+
+# env files — pass secrets via build args / container runtime env instead
+.env
+.env.*
+!.env.local.example
+
+# editor/OS
+.DS_Store
+*.pem
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# agent/tooling directories — not needed at runtime
+.agents
+.claude
+.insforge
+context
+docs
+
+# misc
+coverage
+*.tsbuildinfo
+next-env.d.ts
+README.md
