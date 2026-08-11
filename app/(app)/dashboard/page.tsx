@@ -6,6 +6,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { StatsBar } from "@/components/dashboard/StatsBar";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { computeDashboardStats, type DashboardJobRow } from "@/lib/dashboard";
+import { buildRecentActivity, type ResearchedJobRow, type SearchRunRow } from "@/lib/activity";
 
 const COMPANY_RESEARCH_DATA = [
   { day: "Mon", count: 2 },
@@ -51,13 +52,34 @@ export default async function DashboardPage() {
 
   const stats = computeDashboardStats(jobRows ?? []);
 
+  const { data: searchRuns } = await insforge.database
+    .from("agent_runs")
+    .select("id, job_title_searched, jobs_found, started_at, completed_at")
+    .eq("user_id", user.id)
+    .eq("status", "completed")
+    .not("job_title_searched", "is", null)
+    .order("completed_at", { ascending: false, nullsFirst: false })
+    .limit(10)
+    .overrideTypes<SearchRunRow[], { merge: false }>();
+
+  const { data: researchedJobs } = await insforge.database
+    .from("jobs")
+    .select("id, company, company_research, updated_at")
+    .eq("user_id", user.id)
+    .not("company_research", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(10)
+    .overrideTypes<ResearchedJobRow[], { merge: false }>();
+
+  const activity = buildRecentActivity(searchRuns ?? [], researchedJobs ?? []);
+
   return (
     <div className="min-h-screen px-8 py-10">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
         <StatsBar stats={stats} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <RecentActivity />
+          <RecentActivity entries={activity} />
           <div className="rounded-2xl border border-border bg-surface p-6 shadow">
             <h2 className="text-base font-semibold text-text-primary">Company Research Activity</h2>
             <div className="mt-4">
