@@ -73,6 +73,16 @@ After building any component — update this file with the component name, file 
   - Primary CTA: `min-w-[190px] rounded-md bg-overlay px-8 py-4 text-[20px] font-semibold leading-7 text-accent-foreground shadow-sm transition transform hover:-translate-y-0.5 hover:bg-overlay-dark`
   - Secondary CTA: `min-w-[260px] rounded-md border border-border bg-surface/70 px-8 py-4 text-[20px] font-semibold leading-7 text-text-slate shadow-sm transition transform hover:-translate-y-0.5 hover:bg-surface`
   - Preview panel: `bg-surface-tertiary px-6 py-16 sm:px-10 lg:px-24`
+  - Preview content: `DashboardPreview` (see below) — replaced a static `dashboard-demo.png` screenshot 2026-08-12.
+
+### DashboardPreview (2026-08-12, replaces the old `dashboard-demo.png` screenshot in Hero)
+
+- Path: `components/homepage/DashboardPreview.tsx` — no `"use client"` (no hooks/browser APIs), mock data only, decorative and non-interactive
+- Outer: `overflow-hidden rounded-2xl border border-border bg-surface shadow-lg`
+- Fake browser chrome: `flex items-center gap-4 border-b border-border bg-surface-secondary px-4 py-3` — 3 `bg-border-muted` dots (muted gray per the design, not colored) + a centered `Lock` icon + `joblio.ai/dashboard` pill (`bg-surface`)
+- Mini navbar: real `/logo.png`, static nav items (`Dashboard` in `text-accent border-b-2 border-accent`, others `text-text-dark`) — not the real `Navbar`/`NavbarLink`, since this is frozen decorative content, not a real nav
+- 4 mini stat cards: same shape as `components/dashboard/StatsBar.tsx` (label / value / trend pill / subtitle) at a smaller scale (`text-xl` value instead of `text-[30px]`), same hardcoded numbers as `app/(app)/dashboard/page.tsx`'s own mock fallback (284 / 82% / 35 / 28)
+- Recent Activity + Company Research Activity, both scaled-down versions of the real `RecentActivity`/`CompanyResearchChart` — the chart is plain `<div>`s with inline `height: {value/12 * 100}%`, not recharts (not worth the bundle weight for 7 static decorative bars on a public marketing page)
 
 ### FeatureShowcase
 
@@ -86,7 +96,21 @@ After building any component — update this file with the component name, file 
   - Feature row: `border-b border-border py-9 pl-8 border-l-2 border-l-accent` or `border-b border-border py-9 pl-8 border-l-2 border-l-transparent`
   - Feature title: `text-[26px] font-bold leading-8 text-text-darker`
   - Feature copy: `mt-5 max-w-[760px] text-[24px] font-normal leading-10 text-text-slate-medium`
-  - Divider: `section-hatch h-28 border-b border-border`
+  - Media column content: `JobsListPreview` and `AgentLogPreview` (see below) — replaced static `jobs-lists.png`/`agnet-log.png` screenshots 2026-08-12.
+  - **`section-hatch` divider removed (2026-08-12), flagged by the user as a design error.** Between the two feature rows, and between `BottomCta` and its neighbors, a dedicated `h-28` diagonal-hatch filler block used to sit as its own visual block. Removed everywhere (`FeatureShowcase`'s `PatternDivider`, both instances in `BottomCta`) — sections now separate the same way Hero→FeatureShowcase already did before this fix: one shared hairline (`border-b`/`border-t border-border`) on the adjoining edge, no dedicated divider element. The `.section-hatch` CSS rule and its `--color-hatch-line` token were deleted from `globals.css` too — confirmed unused anywhere else first.
+
+### JobsListPreview (2026-08-12, replaces the old `jobs-lists.png` screenshot)
+
+- Path: `components/homepage/JobsListPreview.tsx` — no `"use client"`, mock data only
+- Replica of the real `JobsTable`/`JobRow` table chrome (`rounded-2xl border border-border bg-surface`, `Building2` company tile, match-score bar + percentage) at a fixed 4-column grid (`grid-cols-[1.4fr_1.2fr_1fr_0.8fr]`) instead of a real `<table>`, since it's frozen content with no responsive/sort behavior to support
+- **Reuses the exact same `getMatchScoreBarColor` 90/80 thresholds as `components/find-jobs/JobRow.tsx`** (90+ green/`success`, 80-89 blue/`info`, below 80 orange/`warning`) — kept as a duplicated function with a comment pointing at the source of truth, not imported, since `JobRow.tsx` is a client component with router logic this component has no reason to depend on
+- Source badge uses the `linkedin`/`linkedin-light` tokens `ui-tokens.md` already documents but the real Find Jobs page never ended up using (feature 09 deviated to a 2-value `search`/`url` enum) — fine here since this is static marketing copy, not derived from the real `jobs.source` enum
+
+### AgentLogPreview (2026-08-12, replaces the old `agnet-log.png` screenshot)
+
+- Path: `components/homepage/AgentLogPreview.tsx` — no `"use client"`, mock data only
+- Dark titlebar (`bg-overlay`) with 3 dots — reuses the `error`/`warning`/`success` color tokens as decorative macOS-traffic-light stand-ins (no dedicated token exists for that, and one wasn't worth adding for 3 decorative dots) — + `agent_log.ts` filename in `font-mono`
+- Body: `font-mono text-sm`, 5 fixed lines each with a line number + colored tag (`[SYSTEM]` info, `[SCAN]` accent, `[ACTION]` success, `...` warning) — hardcoded per-line JSX rather than a generic renderer, since the content is fixed marketing copy, not real `agent_logs` data
 
 ### Testimonial
 

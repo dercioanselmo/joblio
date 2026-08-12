@@ -1,8 +1,8 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
 import { trackEvent } from '@/lib/analytics';
+import { DashboardPreview } from "@/components/homepage/DashboardPreview";
 
 function ArrowGlyph() {
   return (
@@ -45,15 +45,8 @@ export function Hero() {
         </div>
       </div>
       <div className="bg-surface-tertiary px-6 py-16 sm:px-10 lg:px-24">
-        <div className="mx-auto max-w-362.5 overflow-hidden rounded-xl">
-          <Image
-            src="/images/dashboard-demo.png"
-            alt="Joblio dashboard preview"
-            width={4788}
-            height={2416}
-            priority
-            className="h-auto w-full"
-          />
+        <div className="mx-auto max-w-362.5">
+          <DashboardPreview />
         </div>
       </div>
     </section>

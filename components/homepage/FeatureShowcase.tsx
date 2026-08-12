@@ -1,4 +1,5 @@
-import Image from "next/image";
+import { AgentLogPreview } from "@/components/homepage/AgentLogPreview";
+import { JobsListPreview } from "@/components/homepage/JobsListPreview";
 
 const searchFeatures = [
   {
@@ -58,27 +59,14 @@ export function FeatureShowcase() {
         </div>
         <div className="flex items-center bg-surface-muted px-6 py-14 sm:px-12 lg:px-10">
           <div className="mx-auto w-full max-w-xl">
-            <Image
-              src="/images/jobs-lists.png"
-              alt="Job matches list with match score, salary estimate, and source"
-              width={2364}
-              height={1778}
-              className="h-auto w-full rounded-xl shadow-sm"
-            />
+            <JobsListPreview />
           </div>
         </div>
       </div>
-      <PatternDivider />
       <div className="grid border-b border-border lg:grid-cols-2">
         <div className="flex items-center bg-surface-muted px-6 py-16 sm:px-12 lg:px-20">
           <div className="mx-auto w-full max-w-xl">
-            <Image
-              src="/images/agnet-log.png"
-              alt="Agent log showing job scan and resume tailoring progress"
-              width={2144}
-              height={1656}
-              className="h-auto w-full rounded-xl shadow-sm"
-            />
+            <AgentLogPreview />
           </div>
         </div>
         <div className="border-l border-border px-6 py-16 sm:px-12 lg:px-24 lg:py-28">
@@ -92,7 +80,6 @@ export function FeatureShowcase() {
           </div>
         </div>
       </div>
-      <PatternDivider />
     </section>
   );
 }
@@ -118,6 +105,3 @@ function FeatureText({ title, description, active }: FeatureTextProps) {
   );
 }
 
-function PatternDivider() {
-  return <div className="section-hatch h-28 border-b border-border" />;
-}

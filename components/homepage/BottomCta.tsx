@@ -15,7 +15,6 @@ function ArrowGlyph() {
 export function BottomCta() {
   return (
     <section className="border-x border-b border-border">
-      <div className="section-hatch h-28 border-b border-border" />
       <div className="landing-gradient px-6 py-24 text-center sm:px-10 lg:px-24 lg:py-28">
         <h2 className="mx-auto max-w-245 text-[48px] font-bold leading-[1.12] tracking-normal text-text-black sm:text-[64px] lg:text-[76px]">
           Your next job search can feel a lot less overwhelming
@@ -41,7 +40,6 @@ export function BottomCta() {
           </Link>
         </div>
       </div>
-      <div className="section-hatch h-28 border-t border-border" />
     </section>
   );
 }
