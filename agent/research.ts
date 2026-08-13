@@ -54,11 +54,18 @@ function pickSubPages(pageLinks: z.infer<typeof homepageSchema>["pageLinks"]): s
 
 // Follows the Adzuna redirect server-side (no browser needed) to find the real
 // employer job page, then derives the company's root homepage from its hostname.
+// A job's source_url can also be a first-party posting page (emprego.co.mz,
+// since feature 18 — the page itself, not a redirect to the employer), so
+// that hostname is excluded the same way adzuna.com's tracking domain is,
+// falling through to the company-name guess instead of misreading the job
+// board's own domain as the employer's homepage.
 async function deriveHomepageUrl(redirectUrl: string, companyName: string): Promise<string> {
   try {
     const response = await fetch(redirectUrl, { redirect: "follow" });
     const finalUrl = new URL(response.url);
-    if (!finalUrl.hostname.includes("adzuna.com")) {
+    const isJobBoardHost =
+      finalUrl.hostname.includes("adzuna.com") || finalUrl.hostname.includes("emprego.co.mz");
+    if (!isJobBoardHost) {
       const parts = finalUrl.hostname.split(".");
       const rootDomain = parts.length > 2 ? parts.slice(-2).join(".") : finalUrl.hostname;
       return `https://${rootDomain}`;

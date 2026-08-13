@@ -3,17 +3,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { createPostHogServer } from "@/lib/posthog-server";
-import { discoverJobs } from "@/agent/adzuna";
+import { discoverJobs } from "@/agent/emprego";
 import type { Profile } from "@/types";
 
+// location dropped (AC-1 / AC-10): emprego.co.mz's keyword search and its
+// location browsing don't combine (confirmed live), so there's no location
+// input for this source. See docs/specs/0002-emprego-job-discovery.md.
 const findJobsSchema = z.object({
   jobTitle: z.string().trim().min(1),
-  location: z.string().trim().optional().default(""),
 });
 
 function buildResultMessage(jobsFound: number, strongMatches: number): string {
   if (jobsFound === 0) {
-    return "No jobs found for that search. Try a different title or location.";
+    return "No jobs found for that search. Try a different title.";
   }
   return `Found ${jobsFound} job${jobsFound === 1 ? "" : "s"} and saved ${strongMatches} strong match${strongMatches === 1 ? "" : "es"}.`;
 }
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    const { jobTitle, location } = parsed.data;
+    const { jobTitle } = parsed.data;
 
     const insforge = await createInsforgeServer();
     const { data: authData } = await insforge.auth.getCurrentUser();
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
           user_id: user.id,
           status: "running",
           job_title_searched: jobTitle,
-          location_searched: location || null,
+          location_searched: null,
           started_at: new Date().toISOString(),
         },
       ])
@@ -76,10 +78,10 @@ export async function POST(req: NextRequest) {
     posthog.capture({
       distinctId: user.id,
       event: "job_search_started",
-      properties: { userId: user.id, jobTitle, location },
+      properties: { userId: user.id, jobTitle, location: "" },
     });
 
-    const result = await discoverJobs(insforge, jobTitle, location, profile, user.id, run.id);
+    const result = await discoverJobs(insforge, jobTitle, profile, user.id, run.id);
 
     if (!result.success) {
       await insforge.database

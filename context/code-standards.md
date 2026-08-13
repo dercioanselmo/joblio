@@ -250,8 +250,6 @@ All environment variables defined in `.env.local` for development. Never hardcod
 | `AZURE_OPENAI_API_BASE_URL`     | lib/azure-openai.ts    |
 | `AZURE_OPENAI_API_KEY`          | lib/azure-openai.ts    |
 | `AZURE_OPENAI_DEPLOYMENT`       | lib/azure-openai.ts    |
-| `ADZUNA_APP_ID`                 | lib/adzuna.ts          |
-| `ADZUNA_APP_KEY`                | lib/adzuna.ts          |
 | `NEXT_PUBLIC_POSTHOG_KEY`       | lib/posthog-client.ts  |
 | `NEXT_PUBLIC_POSTHOG_HOST`      | lib/posthog-client.ts  |
 
@@ -316,6 +314,7 @@ Approved dependencies for this project:
 - `@react-pdf/renderer` — Resume PDF generation
 - `pdf-parse` — Extract text from uploaded PDF
 - `recharts` — Dashboard analytics charts (line/bar/area)
+- `cheerio` — HTML parsing for the emprego.co.mz job discovery scrape (`lib/emprego.ts`) — the site is plain server-rendered HTML, so a lightweight parser is enough; no browser automation needed here
 - `zod` — Schema validation
 - `lucide-react` — Icons
 - `tailwindcss` — Styling

@@ -1,14 +1,16 @@
-export type NormalizedAdzunaJob = {
+export type NormalizedJob = {
   title: string;
   company: string;
   location: string;
   description: string;
-  redirectUrl: string;
+  responsibilities: string[];
+  requirements: string[];
+  sourceUrl: string;
   salary: string | null;
-  jobType: string;
+  jobType: string | null;
 };
 
-export type ScoredJob = NormalizedAdzunaJob & {
+export type ScoredJob = NormalizedJob & {
   matchScore: number;
   matchReason: string;
   matchedSkills: string[];

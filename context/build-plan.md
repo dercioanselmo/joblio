@@ -444,13 +444,32 @@ Wire three dashboard charts to real PostHog event data for current user.
 
 ---
 
+## Phase 6 — Internationalization & Job Source Migration
+
+### 18 Job Discovery — emprego.co.mz Migration
+
+Replace Adzuna with [emprego.co.mz](https://www.emprego.co.mz/) — a Mozambique job board — as the job discovery source. Adzuna has no coverage for Mozambique; emprego.co.mz is the market-relevant source instead.
+
+**Status:** Designed, ready to build. Full design spec: [`docs/specs/0002-emprego-job-discovery/index.md`](../docs/specs/0002-emprego-job-discovery/index.md) (via `/architect`, same as the original Adzuna integration — `docs/specs/0001-adzuna-job-discovery.md`).
+
+**Decided (see spec for full rationale):** emprego.co.mz has no public API but is plain server-rendered HTML (confirmed by direct inspection) — a plain `fetch()` + HTML parse (new dependency: `cheerio`) is sufficient, no Browserbase/Stagehand needed. Adzuna is fully removed, not kept as a fallback (`lib/adzuna.ts`/`agent/adzuna.ts` deleted, replaced by `lib/emprego.ts`/`agent/emprego.ts`). A search reads up to 5 pages of keyword results looking for up to 10 currently-open (non-expired) postings — the site's `?s=` keyword search and `/cidade/{slug}/` location browsing don't combine, so the **Location input is removed from Find Jobs search** for this source. Each result's detail page is fetched too, populating `about_role`/`responsibilities`/`requirements` from the site's own structured sections (Descrição/Funções/Requisitos) — real data these columns have never had, since Adzuna's blob was always too unstructured to split. `external_apply_url` is always left null (the site has no single guaranteed apply method — email, account-based, or a link, varies per posting); the existing Apply Now button already falls back to `source_url`, so no UI change needed there. `job_type` is classified by extending the existing GPT-4o scoring call rather than left permanently null. Job data (titles, descriptions) stays in Portuguese — translation strategy is feature 19's to decide, not bolted on here.
+
+### 19 Bilingual Support — English / Portuguese
+
+Full application UI available in English and Portuguese (Mozambique's official language), with a way for the user to switch, and English as the default/fallback.
+
+**Status:** Not yet designed. Also goes through `/architect` — undecided load-bearing questions include the i18n library/routing strategy (e.g. locale-prefixed routes vs. a client-side dictionary), where the locale preference is stored (cookie / profile field / browser default), whether AI-generated content (match reasons, company research, generated resumes) gets translated or stays English-only, and how this interacts with feature 18's Portuguese-language source data (job titles/descriptions from emprego.co.mz will already be in Portuguese).
+
+---
+
 ## Feature Count
 
-| Phase                 | Features |
-| --------------------- | -------- |
-| Phase 1 — Foundation  | 4        |
-| Phase 2 — Profile     | 4        |
-| Phase 3 — Find Jobs   | 3        |
-| Phase 4 — Job Details | 2        |
-| Phase 5 — Dashboard   | 4        |
-| **Total**             | **17**   |
+| Phase                                            | Features |
+| ------------------------------------------------- | -------- |
+| Phase 1 — Foundation                              | 4        |
+| Phase 2 — Profile                                 | 4        |
+| Phase 3 — Find Jobs                               | 3        |
+| Phase 4 — Job Details                             | 2        |
+| Phase 5 — Dashboard                                | 4        |
+| Phase 6 — Internationalization & Job Source Migration | 2     |
+| **Total**                                          | **19**   |

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Profile } from "@/types";
-import type { NormalizedAdzunaJob, ScoredJob } from "@/agent/types";
+import type { NormalizedJob, ScoredJob } from "@/agent/types";
 import { azureOpenai, AZURE_OPENAI_DEPLOYMENT } from "@/lib/azure-openai";
 
 const matchResultSchema = z.object({
@@ -8,6 +8,7 @@ const matchResultSchema = z.object({
   matchReason: z.string(),
   matchedSkills: z.array(z.string()).max(8),
   missingSkills: z.array(z.string()).max(8),
+  jobType: z.enum(["fulltime", "parttime", "contract"]).nullable(),
 });
 
 const MATCHING_SYSTEM_PROMPT = `You score how well a job posting fits a candidate's profile for a job
@@ -18,7 +19,10 @@ search app. Call the record_match tool with the result.
 - matchReason is one paragraph (1 to 3 sentences) explaining the score in plain language.
 - matchedSkills lists skills the candidate has that the job also wants (max 8, most relevant first).
 - missingSkills lists skills the job wants that the candidate's profile doesn't show (max 8, most
-  relevant first). Leave both arrays empty if truly nothing matches or is missing.`;
+  relevant first). Leave both arrays empty if truly nothing matches or is missing.
+- jobType is one of "fulltime", "parttime", "contract" if the posting's text clearly implies one of
+  these (e.g. a stated contract duration implies "contract", explicit part time hours imply
+  "parttime"). Return null if the posting gives no real signal either way — never guess.`;
 
 const RECORD_MATCH_TOOL = {
   type: "function" as const,
@@ -32,18 +36,21 @@ const RECORD_MATCH_TOOL = {
         matchReason: { type: "string" },
         matchedSkills: { type: "array", items: { type: "string" } },
         missingSkills: { type: "array", items: { type: "string" } },
+        jobType: { type: ["string", "null"], enum: ["fulltime", "parttime", "contract", null] },
       },
-      required: ["matchScore", "matchReason", "matchedSkills", "missingSkills"],
+      required: ["matchScore", "matchReason", "matchedSkills", "missingSkills", "jobType"],
     },
   },
 };
 
-function buildUserPrompt(job: NormalizedAdzunaJob, profile: Profile): string {
+function buildUserPrompt(job: NormalizedJob, profile: Profile): string {
   return `JOB POSTING
 Title: ${job.title}
 Company: ${job.company}
 Location: ${job.location}
 Description: ${job.description}
+Responsibilities: ${job.responsibilities.join("; ") || "Not provided"}
+Requirements: ${job.requirements.join("; ") || "Not provided"}
 
 CANDIDATE PROFILE
 Current title: ${profile.current_title ?? "Not provided"}
@@ -55,7 +62,7 @@ Job titles seeking: ${(profile.job_titles_seeking ?? []).join(", ") || "Not prov
 }
 
 export async function scoreJob(
-  job: NormalizedAdzunaJob,
+  job: NormalizedJob,
   profile: Profile,
 ): Promise<{ success: true; job: ScoredJob } | { success: false; error: string }> {
   try {

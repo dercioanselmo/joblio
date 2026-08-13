@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 
+// Location input removed (docs/specs/0002-emprego-job-discovery.md, AC-1):
+// emprego.co.mz's keyword search and its location browsing don't combine
+// (confirmed live), so there's no location filter for this source.
 export function SearchControls() {
   const router = useRouter();
   const [jobTitle, setJobTitle] = useState("");
-  const [location, setLocation] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function SearchControls() {
       const response = await fetch("/api/agent/find", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobTitle, location }),
+        body: JSON.stringify({ jobTitle }),
       });
       const result = await response.json();
 
@@ -50,7 +52,7 @@ export function SearchControls() {
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-6 shadow">
-      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
           <Label htmlFor="jobTitle">Job Title</Label>
           <div className="relative mt-1.5">
@@ -67,17 +69,6 @@ export function SearchControls() {
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
-        </div>
-        <div>
-          <Label htmlFor="location">Location</Label>
-          <Input
-            id="location"
-            className="mt-1.5"
-            placeholder="Remote, New York..."
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
         </div>
         <Button
           type="button"
