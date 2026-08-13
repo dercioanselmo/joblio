@@ -69,9 +69,9 @@ export function JobFilters({ initialQuery, initialFilter, initialSort }: Props) 
           value={initialSort}
           onChange={(e) => updateParams({ sort: e.target.value })}
         >
-          <option value="matchScore">Match Score</option>
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
+          <option value="matchScore">Match Score</option>
         </Select>
       </div>
     </div>

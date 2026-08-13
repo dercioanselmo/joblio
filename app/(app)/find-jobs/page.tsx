@@ -15,8 +15,11 @@ function parseFilter(value: string | undefined): MatchFilter {
   return value === "high" || value === "low" ? value : "all";
 }
 
+// Default is "newest" (most recently found first) — the newest search
+// results belong at the top, so a freshly re-searched job (updated via the
+// jobs_user_source_url_unique upsert) reliably surfaces where it was found.
 function parseSort(value: string | undefined): SortOption {
-  return value === "newest" || value === "oldest" ? value : "matchScore";
+  return value === "matchScore" || value === "oldest" ? value : "newest";
 }
 
 function parsePage(value: string | undefined): number {

@@ -182,9 +182,18 @@ export async function discoverJobs(
       };
     });
 
-    const { error: insertError } = await insforge.database.from("jobs").insert(jobRows);
-    if (insertError) {
-      console.error("[agent/emprego]", insertError);
+    // Re-finding a posting already saved for this user (same source_url)
+    // updates that row — new score, new found_at so it sorts as freshly
+    // found — instead of duplicating it. `jobs_user_source_url_unique`
+    // (migrations/20260813030426) is the conflict target. company_research,
+    // id, and created_at are deliberately absent from jobRows, so on
+    // conflict PostgREST's ON CONFLICT DO UPDATE leaves them untouched — a
+    // job the user already researched keeps that dossier across re-searches.
+    const { error: upsertError } = await insforge.database
+      .from("jobs")
+      .upsert(jobRows, { onConflict: "user_id,source_url" });
+    if (upsertError) {
+      console.error("[agent/emprego]", upsertError);
       return { success: false, error: "Failed to save discovered jobs." };
     }
 

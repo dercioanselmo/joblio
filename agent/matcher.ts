@@ -69,7 +69,12 @@ export async function scoreJob(
     const completion = await azureOpenai.chat.completions.create({
       model: AZURE_OPENAI_DEPLOYMENT,
       max_tokens: 400,
-      temperature: 0.3,
+      // Lowered from 0.3: this is a scoring/classification task, not a
+      // creative one, and the same job scored twice for the same untouched
+      // profile should land close to the same number. Not fully
+      // deterministic even at 0 (the model still has some inherent
+      // variance), but this meaningfully tightens it.
+      temperature: 0.1,
       tools: [RECORD_MATCH_TOOL],
       tool_choice: { type: "function", function: { name: "record_match" } },
       messages: [

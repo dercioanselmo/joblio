@@ -1,4 +1,4 @@
-# Verify: 18 Job Discovery — emprego.co.mz Migration · spec 0002 · updated 2026-08-13
+# Verify: 18 Job Discovery — emprego.co.mz Migration · spec 0002 · updated 2026-08-13 (AC-11 added)
 
 _Steps derived from spec 0002 acceptance criteria. `/check verify` runs these; `/test` locks the durable ones._
 
@@ -10,6 +10,9 @@ _Steps derived from spec 0002 acceptance criteria. `/check verify` runs these; `
 - [ ] Open a job found via this source on `/find-jobs/[id]`, confirm the Job Description card shows real Responsibilities and Requirements content, not just a short blob → AC-3
 - [ ] On that same job details page, click "Apply Now" / "View Job Post", confirm it opens the real `emprego.co.mz/vaga/...` page in a new tab (not a broken link, not the emprego.co.mz homepage) → AC-7
 - [ ] Confirm the Salary Est. field shows "Not disclosed" rather than a broken or blank value for an emprego.co.mz-sourced job → Consequences (salary usually absent)
+- [ ] Default the Find Jobs page (no `?sort=` in the URL) — confirm the sort dropdown shows "Newest" selected and the most recently found job is the first row → default sort fix
+- [ ] Search the same job title twice in a row, confirm the job count doesn't grow for postings already saved (no duplicate rows for the same company/title) → AC-11
+- [ ] If a job was already researched (has a Company Research dossier), re-search for it, confirm the dossier is still there afterward (not cleared) → AC-11
 
 ## Commands
 
@@ -30,3 +33,4 @@ _Steps derived from spec 0002 acceptance criteria. `/check verify` runs these; `
 - AC-8 (parser breakage warning on a first-page zero-result parse) — not independently exercised live (the site did not break during verification); covered at the code level in `collectActiveResults()`
 - AC-9 (zero-results message, no "or location") — covered by the nonsense-search manual step
 - AC-10 (Adzuna fully removed) — covered by the build's own deletion of `lib/adzuna.ts`/`agent/adzuna.ts` and the passing typecheck/lint/build afterward
+- AC-11 (re-search updates, never duplicates; company_research preserved) — covered by the two manual steps above; also verified live during the build: found and merged 4 real pre-existing duplicate rows, then re-ran the same search twice more against the real site with the fix in place — row count stayed at 1, `company_research` on the researched row stayed intact both times

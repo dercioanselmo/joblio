@@ -79,7 +79,14 @@ CREATE TABLE IF NOT EXISTS jobs (
   company_research jsonb,
   found_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  -- A plain UNIQUE constraint, not a partial index: standard SQL NULL
+  -- semantics already let unlimited NULL source_url rows coexist per user,
+  -- and this shape matches PostgREST's upsert(rows, { onConflict:
+  -- 'user_id,source_url' }) directly. Re-discovering the same posting
+  -- updates the existing row (score, found_at, etc.) instead of duplicating
+  -- it — see migrations/20260813030426_jobs-user-source-url-unique.sql.
+  CONSTRAINT jobs_user_source_url_unique UNIQUE (user_id, source_url)
 );
 
 CREATE INDEX IF NOT EXISTS jobs_user_id_idx ON jobs (user_id);

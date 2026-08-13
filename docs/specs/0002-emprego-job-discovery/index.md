@@ -25,6 +25,7 @@ Joblio's job search currently pulls from Adzuna, which has no listings for Mozam
 - **AC-8**: If a page fetch succeeds (the request itself did not fail) but the parser finds zero of the fields it expects, a warning is recorded in `agent_logs` noting the page may have changed shape, distinct from a genuine zero result search.
 - **AC-9**: A search that finds zero open, matching postings after scanning up to 5 pages shows the same "No jobs found for that search" message the app already shows today.
 - **AC-10**: Adzuna is fully removed; there is exactly one job discovery pipeline.
+- **AC-11** (added 2026-08-13, real usage after the initial build): Re-searching a posting already saved for this user (same `source_url`) updates that row (score, description, `found_at`) instead of inserting a duplicate. An existing `company_research` dossier on that row is never overwritten by a re-search.
 
 ## Decision
 
@@ -64,6 +65,7 @@ No new tables or columns. The existing `jobs` table already fits: `title`, `comp
 - A search never reads more than 5 pages of results looking for those 10.
 - A saved job is never expired at the time it was found.
 - `jobs.source` stays `'search'` for these rows, matching the existing check constraint; no new source value is introduced.
+- A `(user_id, source_url)` pair is never duplicated (AC-11) — enforced at the database via `jobs_user_source_url_unique`, not just an application-level check.
 
 **Security model**: Unchanged from today. The route requires a signed in session and a completed profile, exactly as the Adzuna version did; no new authorization surface.
 
@@ -93,6 +95,8 @@ Per this project's own build approach (mock UI first, then wire real logic, stat
 10. Verify live against the real site before wiring the UI test pass — done (see `progress-tracker.md`'s build entry for the real, live-verified result)
 
 **Not in the original plan, added during the build**: `agent/research.ts`'s `deriveHomepageUrl()` (feature 13) assumed `job.source_url` redirects through to the employer's real site, the way Adzuna's did. emprego.co.mz job pages don't redirect anywhere (first-party posting pages), so this was fixed to exclude `emprego.co.mz`'s own hostname the same way `adzuna.com`'s tracking domain was already excluded — otherwise every future company research run on an emprego.co.mz job would have researched the job board instead of the employer.
+
+**Not in the original plan, added 2026-08-13 from real usage after the build (AC-11)**: re-searching an already-saved job created a duplicate row instead of updating it, and the same job scored noticeably differently across identical searches. Fixed with `migrations/20260813030426_jobs-user-source-url-unique.sql` (`UNIQUE (user_id, source_url)`) plus switching `discoverJobs`'s final write from `.insert()` to `.upsert(jobRows, { onConflict: "user_id,source_url" })` — `company_research` is deliberately excluded from `jobRows` so an existing dossier survives a re-search untouched. `agent/matcher.ts`'s scoring temperature was also lowered 0.3 → 0.1 to reduce (not eliminate) score variance for an unchanged job/profile pair. Find Jobs' default sort also changed from Match Score to Newest (`app/(app)/find-jobs/page.tsx`), so a freshly (re-)found job surfaces at the top. See `progress-tracker.md`'s matching build entry for the live verification.
 
 ## Consequences
 
